@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Geist, Geist_Mono, Noto_Serif, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
+import { cn } from "@/lib/utils";
+
+const jetbrainsMonoHeading = JetBrains_Mono({subsets:['latin'],variable:'--font-heading'});
+
+const notoSerif = Noto_Serif({subsets:['latin'],variable:'--font-serif'});
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -23,7 +28,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full antialiased`}>
+    <html lang="en" className={cn("h-full", "antialiased", "font-serif", notoSerif.variable, jetbrainsMonoHeading.variable)}>
       {/* Navbar */}
 
       <body>{children}</body>
