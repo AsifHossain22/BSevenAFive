@@ -1,0 +1,35 @@
+'use client';
+
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+
+const RegisterForm = () => {
+  return (
+    <form className="space-y-4">
+      <Card className="p-5 space-y-4">
+        <Input type="text" name="name" placeholder="Enter your name" required />
+
+        <Input
+          type="email"
+          name="email"
+          placeholder="Enter your email"
+          required
+        />
+
+        <Input
+          type="password"
+          name="password"
+          placeholder="Enter your password"
+          required
+        />
+
+        <Button className="cursor-pointer" type="submit">
+          Register
+        </Button>
+      </Card>
+    </form>
+  );
+};
+
+export default RegisterForm;
