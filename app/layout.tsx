@@ -1,11 +1,20 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Noto_Serif, JetBrains_Mono } from 'next/font/google';
+import {
+  Geist,
+  Geist_Mono,
+  Noto_Serif,
+  JetBrains_Mono,
+} from 'next/font/google';
 import './globals.css';
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
+import { Toaster } from 'sonner';
 
-const jetbrainsMonoHeading = JetBrains_Mono({subsets:['latin'],variable:'--font-heading'});
+const jetbrainsMonoHeading = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-heading',
+});
 
-const notoSerif = Noto_Serif({subsets:['latin'],variable:'--font-serif'});
+const notoSerif = Noto_Serif({ subsets: ['latin'], variable: '--font-serif' });
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -28,12 +37,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", "font-serif", notoSerif.variable, jetbrainsMonoHeading.variable)}>
-      {/* Navbar */}
+    <html
+      lang="en"
+      className={cn(
+        'h-full',
+        'antialiased',
+        'font-serif',
+        notoSerif.variable,
+        jetbrainsMonoHeading.variable,
+      )}
+    >
+      <body>
+        {/* Navbar */}
 
-      <body>{children}</body>
+        <main>{children}</main>
 
-      {/* Footer */}
+        {/* Footer */}
+
+        {/* Toaster */}
+        <Toaster position="top-right" richColors />
+      </body>
     </html>
   );
 }
