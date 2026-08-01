@@ -6,17 +6,20 @@ import { Input } from '@/components/ui/input';
 import { loginAction } from '../_actions/authActions';
 import { useActionState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 
 const LoginForm = () => {
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') ?? '';
+
   // PendingState - FormSubmission
-  const [state, action, pending] = useActionState(loginAction, false);
+  const [state, action, pending] = useActionState(
+    loginAction.bind(null, redirectTo),
+    false,
+  );
 
   useEffect(() => {
     if (!state) return;
-
-    if (state.success) {
-      toast.success(state.message || 'Logged in successfully!');
-    }
 
     if (!state.success) {
       toast.error(state.message || 'Logged in failed!');

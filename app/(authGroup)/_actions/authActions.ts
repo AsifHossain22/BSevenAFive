@@ -1,8 +1,8 @@
 'use server';
 
-// import jwt, { JwtPayload } from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-// import { redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 type LoginState = {
   success: true;
@@ -15,7 +15,7 @@ type LoginState = {
 };
 
 export const loginAction = async (
-  // redirectTo: string,
+  redirectTo: string,
   prevState: LoginState,
   formData: FormData,
 ) => {
@@ -59,24 +59,24 @@ export const loginAction = async (
       sameSite: 'lax',
     });
 
-    //   const decodedToken = jwt.decode(result.data.accessToken) as JwtPayload;
+    const decodedToken = jwt.decode(result.data.accessToken) as JwtPayload;
 
-    //   if (
-    //     redirectTo &&
-    //     typeof redirectTo === 'string' &&
-    //     redirectTo.startsWith('/') &&
-    //     !redirectTo.startsWith('//')
-    //   ) {
-    //     redirect(redirectTo);
-    //   }
+    if (
+      redirectTo &&
+      typeof redirectTo === 'string' &&
+      redirectTo.startsWith('/') &&
+      !redirectTo.startsWith('//')
+    ) {
+      redirect(redirectTo);
+    }
 
-    //   if (decodedToken.role === 'USER') {
-    //     redirect('/dashboard');
-    //   } else if (decodedToken.role === 'ADMIN') {
-    //     redirect('/admin-dashboard');
-    //   } else if (decodedToken.role === 'AUTHOR') {
-    //     redirect('/author-dashboard');
-    //   }
+    if (decodedToken.role === 'USER') {
+      redirect('/dashboard');
+    } else if (decodedToken.role === 'ADMIN') {
+      redirect('/admin-dashboard');
+    } else if (decodedToken.role === 'AUTHOR') {
+      redirect('/author-dashboard');
+    }
   }
 
   return result;
