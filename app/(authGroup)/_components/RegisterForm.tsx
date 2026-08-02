@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +20,7 @@ interface RegisterFormProps {
 }
 
 export default function RegisterForm({ onSuccess }: RegisterFormProps) {
+  const router = useRouter();
   const [state, action, pending] = useActionState(registerAction, null);
   const [role, setRole] = useState<string>('CUSTOMER');
 
@@ -26,16 +28,19 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (!state) return;
 
     if (state.success) {
-      toast.success(state.message || 'Registration successful!');
+      toast.success(
+        state.message || 'Registration successful! Redirecting to login...',
+      );
+
       if (onSuccess) onSuccess();
+      router.push('/login'); // RedirectToLoginRoute
     } else {
       toast.error(state.message || 'Registration failed');
     }
-  }, [state, onSuccess]);
+  }, [state, onSuccess, router]);
 
   return (
     <form action={action} className="space-y-4">
-      {/* HiddenInputEnsuresROLEIncludedInStandardFormDataSubmission */}
       <input type="hidden" name="role" value={role} />
 
       <div className="space-y-2">
@@ -48,6 +53,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           required
         />
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="register-email">Email</Label>
         <Input
@@ -58,6 +64,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           required
         />
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="register-password">Password</Label>
         <Input
@@ -68,6 +75,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           required
         />
       </div>
+
       <div className="space-y-2">
         <Label htmlFor="register-role">Select Role</Label>
         <Select
@@ -85,6 +93,7 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
           </SelectContent>
         </Select>
       </div>
+
       <Button
         type="submit"
         disabled={pending}
