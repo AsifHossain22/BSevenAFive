@@ -85,11 +85,11 @@ export const loginAction = async (
 
       // 2. RedirectToRoleBasedDashboards
       if (role === 'CUSTOMER') {
-        redirect('/dashboard/customer');
+        redirect('/dashboard/customer-dashboard');
       } else if (role === 'TECHNICIAN') {
-        redirect('/dashboard/technician');
+        redirect('/dashboard/technician-dashboard');
       } else if (role === 'ADMIN') {
-        redirect('/dashboard/admin');
+        redirect('/dashboard/admin-dashboard');
       } else {
         redirect('/dashboard');
       }

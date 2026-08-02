@@ -28,8 +28,6 @@ const navItems = [
 // UserMenuItems
 const userMenuItems = [
   { label: 'Dashboard', icon: LayoutDashboard, action: 'dashboard' },
-  { label: 'Profile', icon: User, action: 'profile' },
-  { label: 'Settings', icon: Settings, action: 'settings' },
 ];
 
 export function Navbar({ user }: NavbarProps) {
@@ -50,23 +48,13 @@ export function Navbar({ user }: NavbarProps) {
       const role = user?.data?.profile?.role || userData?.role;
 
       if (role === 'CUSTOMER') {
-        router.push('/dashboard/customer');
+        router.push('/dashboard/customer-dashboard');
       } else if (role === 'TECHNICIAN') {
-        router.push('/dashboard/technician');
+        router.push('/dashboard/technician-dashboard');
       } else if (role === 'ADMIN') {
-        router.push('/dashboard/admin');
+        router.push('/dashboard/admin-dashboard');
       } else {
         router.push('/dashboard');
-      }
-      return;
-    }
-
-    if (action === 'profile') {
-      const role = user?.data?.profile?.role || userData?.role;
-      if (role === 'TECHNICIAN') {
-        router.push('/dashboard/technician/profile');
-      } else {
-        router.push('/dashboard/profile');
       }
       return;
     }
