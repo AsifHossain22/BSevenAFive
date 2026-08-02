@@ -23,7 +23,7 @@ export function HeroSection() {
         </p>
 
         {/* QuickSearchBar */}
-        <div className="mt-8 max-w-xl mx-auto flex flex-col sm:flex-row gap-2 p-2 rounded-xl bg-card border border-border shadow-lg">
+        <div className="mt-8 max-w-xl mx-auto flex flex-col sm:flex-row gap-2 p-2 rounded-2xl bg-card border border-border shadow-lg">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <Input
