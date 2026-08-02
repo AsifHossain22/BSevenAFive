@@ -143,9 +143,11 @@ export type IUserProfileData = {
   id?: string;
   name?: string;
   email?: string;
+  phone?: number;
   role?: IUserRole;
   activeStatus?: IUserActiveStatus;
   profile?: IProfile | null;
+  address?: string;
 };
 
 // UserProfileResponse

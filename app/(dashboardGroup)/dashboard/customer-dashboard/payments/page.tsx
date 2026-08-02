@@ -1,70 +1,76 @@
+import { CreditCard, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { IPayment } from '@/lib/types';
 
-export default async function CustomerPaymentsPage() {
-  // TODO: ReplaceWithDBQuery;
-  const payments: IPayment[] = [
+// FetchPayments
+async function getPaymentHistory() {
+  // TODO: APIServiceFromDB
+  return [
     {
-      id: 'PAY-8821',
-      bookingId: 'BK-101',
-      amount: 85,
+      id: 'TXN-982103',
+      bookingId: 'BK-1001',
+      serviceName: 'AC Deep Cleaning & Repair',
+      amount: 1500,
+      paymentMethod: 'bKash Online',
+      date: '2026-08-01',
       status: 'PAID',
-      transactionId: 'txn_3Mq129481923',
-      paymentMethod: 'Stripe Credit Card',
-      createdAt: '2026-08-01T10:00:00Z',
-      updatedAt: '2026-08-01T10:00:00Z',
     },
     {
-      id: 'PAY-8819',
-      bookingId: 'BK-099',
-      amount: 50,
+      id: 'TXN-871239',
+      bookingId: 'BK-1002',
+      serviceName: 'Plumbing Leakage Repair',
+      amount: 800,
+      paymentMethod: 'Credit Card',
+      date: '2026-07-28',
       status: 'PAID',
-      transactionId: 'SSL_COMMERZ_99182',
-      paymentMethod: 'SSLCommerz',
-      createdAt: '2026-07-28T14:30:00Z',
-      updatedAt: '2026-07-28T14:30:00Z',
     },
   ];
+}
+
+export default async function CustomerPaymentsPage() {
+  const payments = await getPaymentHistory();
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Payment History</h1>
         <p className="text-sm text-muted-foreground">
-          View all completed transactions and receipts.
+          Review your transaction details and payment logs.
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Transactions</CardTitle>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <CreditCard className="w-5 h-5 text-primary" /> Transactions
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
+          <div className="relative w-full overflow-auto">
             <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-muted/50 text-muted-foreground border-b">
+              <thead className="text-xs uppercase bg-muted/50 border-b">
                 <tr>
                   <th className="p-3">Transaction ID</th>
+                  <th className="p-3">Service</th>
+                  <th className="p-3">Date</th>
                   <th className="p-3">Method</th>
                   <th className="p-3">Amount</th>
-                  <th className="p-3">Date</th>
-                  <th className="p-3 text-right">Status</th>
+                  <th className="p-3">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y">
                 {payments.map(p => (
                   <tr key={p.id} className="hover:bg-muted/20">
-                    <td className="p-3 font-mono font-medium">
-                      {p.transactionId}
-                    </td>
+                    <td className="p-3 font-medium">{p.id}</td>
+                    <td className="p-3">{p.serviceName}</td>
+                    <td className="p-3 text-muted-foreground">{p.date}</td>
                     <td className="p-3">{p.paymentMethod}</td>
-                    <td className="p-3 font-bold">${p.amount}</td>
-                    <td className="p-3 text-muted-foreground">
-                      {new Date(p.createdAt).toLocaleDateString()}
+                    <td className="p-3 font-semibold text-primary">
+                      ৳{p.amount}
                     </td>
-                    <td className="p-3 text-right">
-                      <Badge className="bg-emerald-600">{p.status}</Badge>
+                    <td className="p-3">
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> {p.status}
+                      </span>
                     </td>
                   </tr>
                 ))}

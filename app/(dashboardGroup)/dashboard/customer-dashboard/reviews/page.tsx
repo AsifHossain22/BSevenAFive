@@ -1,81 +1,75 @@
-'use client';
-
-import { useState } from 'react';
+/* eslint-disable react/no-unescaped-entities */
+import { Star, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Star } from 'lucide-react';
-import { toast } from 'sonner';
 
-export default function CustomerReviewsPage() {
-  const [rating, setRating] = useState<number>(5);
-  const [comment, setComment] = useState('');
+// FetchReviews
+async function getCustomerReviews() {
+  // TODO: APIServiceFromDB
+  return [
+    {
+      id: 'REV-1',
+      technicianName: 'Karim Ullah',
+      serviceName: 'Plumbing Leakage Repair',
+      rating: 5,
+      comment:
+        'Very professional worker. Fixed the pipeline leakage in under an hour!',
+      date: '2026-07-29',
+    },
+  ];
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast.success('Thank you! Your review has been submitted.');
-    setComment('');
-  };
+export default async function CustomerReviewsPage() {
+  const reviews = await getCustomerReviews();
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Service Reviews</h1>
+        <h1 className="text-2xl font-bold tracking-tight">My Reviews</h1>
         <p className="text-sm text-muted-foreground">
-          Leave feedback for technicians after service completion.
+          Ratings and feedback you provided to service technicians.
         </p>
       </div>
 
-      {/* ReviewSubmissionForm */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Leave a Review</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground block mb-2">
-                Rating
-              </label>
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map(star => (
-                  <button
-                    key={star}
-                    type="button"
-                    onClick={() => setRating(star)}
-                    className="cursor-pointer"
-                  >
-                    <Star
-                      className={`w-6 h-6 ${
-                        star <= rating
-                          ? 'text-amber-500 fill-amber-500'
-                          : 'text-muted border-muted-foreground'
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground block mb-2">
-                Your Feedback
-              </label>
-              <Textarea
-                placeholder="How was your technician's service?"
-                value={comment}
-                onChange={e => setComment(e.target.value)}
-                required
-                rows={4}
-              />
-            </div>
-
-            <Button type="submit" className="cursor-pointer">
-              Submit Review
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+      {reviews.length === 0 ? (
+        <Card className="p-8 text-center text-muted-foreground">
+          You have not posted any reviews yet.
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {reviews.map(rev => (
+            <Card key={rev.id}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-base font-semibold">
+                      {rev.serviceName}
+                    </CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      Technician:{' '}
+                      <span className="font-medium text-foreground">
+                        {rev.technicianName}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-500 bg-amber-50 px-2 py-1 rounded text-xs font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-500" />
+                    {rev.rating} / 5
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <p className="text-sm text-muted-foreground flex items-start gap-2">
+                  <MessageSquare className="w-4 h-4 shrink-0 mt-0.5 text-primary" />
+                  "{rev.comment}"
+                </p>
+                <p className="text-xs text-muted-foreground text-right">
+                  {rev.date}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
