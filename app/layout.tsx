@@ -8,8 +8,9 @@ import {
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from 'sonner';
-import { Navbar } from '@/components/shared/navbar';
 import { getUser } from '@/service/getUser';
+import { Navbar } from '@/components/shared/Navbar';
+import { Footer } from '@/components/shared/Footer';
 
 const jetbrainsMonoHeading = JetBrains_Mono({
   subsets: ['latin'],
@@ -57,6 +58,7 @@ export default async function RootLayout({
         <main>{children}</main>
 
         {/* Footer */}
+        <Footer />
 
         {/* Toaster */}
         <Toaster position="top-right" richColors />
