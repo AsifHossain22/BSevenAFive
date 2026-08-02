@@ -1,53 +1,69 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { loginAction } from '../_actions/authActions';
 import { useActionState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { useSearchParams } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { loginAction } from '../_actions/authActions';
 
-const LoginForm = () => {
+interface LoginFormProps {
+  onSuccess?: () => void;
+}
+
+export default function LoginForm({ onSuccess }: LoginFormProps) {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') ?? '';
+  const redirectUrl = searchParams.get('redirect') || null;
 
-  // PendingState - FormSubmission
+  const loginActionWithRedirect = loginAction.bind(null, redirectUrl);
   const [state, action, pending] = useActionState(
-    loginAction.bind(null, redirectTo),
-    false,
+    loginActionWithRedirect,
+    null,
   );
 
   useEffect(() => {
     if (!state) return;
 
-    if (!state.success) {
-      toast.error(state.message || 'Logged in failed!');
+    if (state.success) {
+      toast.success(state.message || 'Login successful!');
+      router.refresh();
+      if (onSuccess) onSuccess();
+    } else {
+      toast.error(state.message || 'Login failed');
     }
-  }, [state]);
+  }, [state, onSuccess, router]);
+
   return (
     <form action={action} className="space-y-4">
-      <Card className="p-5 space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="login-email">Email</Label>
         <Input
+          id="login-email"
           type="email"
           name="email"
           placeholder="Enter your email"
           required
         />
-
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="login-password">Password</Label>
         <Input
+          id="login-password"
           type="password"
           name="password"
           placeholder="Enter your password"
           required
         />
-
-        <Button className="cursor-pointer" type="submit">
-          {pending ? 'Submitting...' : 'Login'}
-        </Button>
-      </Card>
+      </div>
+      <Button
+        type="submit"
+        disabled={pending}
+        className="w-full cursor-pointer"
+      >
+        {pending ? 'Logging in...' : 'Login'}
+      </Button>
     </form>
   );
-};
-
-export default LoginForm;
+}
