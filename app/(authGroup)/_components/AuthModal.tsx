@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import LoginForm from './LoginForm';
 import RegisterForm from './RegisterForm';
@@ -31,11 +31,10 @@ export function AuthModal({
   variant = 'default',
 }: AuthModalProps) {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'login' | 'register'>(defaultTab);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger>
+      <DialogTrigger asChild>
         <Button variant={variant} className="cursor-pointer">
           {triggerText}
         </Button>
@@ -43,18 +42,16 @@ export function AuthModal({
       <DialogContent className="sm:max-w-106.25">
         <DialogHeader>
           <DialogTitle className="text-center font-bold text-xl">
-            {activeTab === 'login' ? 'Welcome Back' : 'Create an Account'}
+            {defaultTab === 'login' ? 'Welcome Back' : 'Create an Account'}
           </DialogTitle>
         </DialogHeader>
-        <Tabs
-          value={activeTab}
-          onValueChange={val => setActiveTab(val as 'login' | 'register')}
-          className="w-full"
-        >
-          <TabsContent value="login" className="mt-4">
+
+        {/* Tabs container without the TabsList header */}
+        <Tabs value={defaultTab} className="w-full">
+          <TabsContent value="login" className="mt-2">
             <LoginForm onSuccess={() => setOpen(false)} />
           </TabsContent>
-          <TabsContent value="register" className="mt-4">
+          <TabsContent value="register" className="mt-2">
             <RegisterForm onSuccess={() => setOpen(false)} />
           </TabsContent>
         </Tabs>

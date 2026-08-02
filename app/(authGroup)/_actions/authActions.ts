@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use server';
 
@@ -111,40 +112,33 @@ export const loginAction = async (
 };
 
 // RegistrationAction
-export const registerAction = async (
-  prevState: AuthActionResult | null,
-  formData: FormData,
-): Promise<AuthActionResult> => {
-  const name = formData.get('name');
-  const email = formData.get('email');
-  const password = formData.get('password');
-  const role = formData.get('role') || 'CUSTOMER';
-
-  const payload = {
-    name,
-    email,
-    password,
-    role,
-  };
+export async function registerAction(prevState: any, formData: FormData) {
+  const name = formData.get('name') as string;
+  const email = formData.get('email') as string;
+  const password = formData.get('password') as string;
+  const role = formData.get('role') as string;
 
   try {
     const res = await fetch(
       `${process.env.BACKEND_API_URL}/api/auth/register`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, role }),
       },
     );
 
-    const result: AuthActionResult = await res.json();
-    return result;
-  } catch (error: any) {
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { success: false, message: data.message || 'Registration failed' };
+    }
+
+    return { success: true, message: 'Account created successfully!' };
+  } catch (error) {
     return {
       success: false,
-      message: error?.message || 'Failed to connect to backend server',
+      message: 'Something went wrong. Please try again.',
     };
   }
-};
+}

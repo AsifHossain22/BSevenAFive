@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ interface RegisterFormProps {
 
 export default function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [state, action, pending] = useActionState(registerAction, null);
+  const [role, setRole] = useState<string>('CUSTOMER');
 
   useEffect(() => {
     if (!state) return;
@@ -34,6 +35,9 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
 
   return (
     <form action={action} className="space-y-4">
+      {/* HiddenInputEnsuresROLEIncludedInStandardFormDataSubmission */}
+      <input type="hidden" name="role" value={role} />
+
       <div className="space-y-2">
         <Label htmlFor="register-name">Name</Label>
         <Input
@@ -66,13 +70,18 @@ export default function RegisterForm({ onSuccess }: RegisterFormProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="register-role">Select Role</Label>
-        <Select name="role" defaultValue="CUSTOMER">
-          <SelectTrigger>
+        <Select
+          value={role}
+          onValueChange={val => {
+            if (val) setRole(val);
+          }}
+        >
+          <SelectTrigger id="register-role">
             <SelectValue placeholder="Select role" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Customer">Customer</SelectItem>
-            <SelectItem value="Technician">Technician</SelectItem>
+            <SelectItem value="CUSTOMER">Customer</SelectItem>
+            <SelectItem value="TECHNICIAN">Technician</SelectItem>
           </SelectContent>
         </Select>
       </div>
