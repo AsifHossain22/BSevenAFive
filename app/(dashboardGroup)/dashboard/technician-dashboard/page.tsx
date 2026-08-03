@@ -1,99 +1,69 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { getUser } from '@/service/getUser';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
-  Wrench,
-  CheckCircle2,
-  Clock,
   Calendar,
-  MapPin,
   DollarSign,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
-import { IBooking, IUserProfileResponse } from '@/lib/types';
+import { IUserProfileResponse } from '@/lib/types';
+import { getTechnicianBookings } from '@/service/technicianService';
 
-async function getTechnicianJobs(): Promise<IBooking[]> {
-  // TODO: APIFetchService
-  return [
-    {
-      id: 'JOB-2001',
-      customerId: 'cust-1',
-      customer: {
-        id: 'cust-1',
-        name: 'Sufian Ahmed',
-        email: 'sufian@example.com',
-        role: 'CUSTOMER',
-        activeStatus: 'ACTIVE',
-        createdAt: '2026-01-01',
-        updatedAt: '2026-01-01',
-      },
-      technicianId: 'tech-1',
-      serviceId: 'srv-1',
-      service: {
-        id: 'srv-1',
-        title: 'AC Deep Cleaning & Service',
-        description: 'Complete indoor and outdoor unit wash.',
-        price: 1500,
-        categoryId: 'cat-1',
-        createdAt: '2026-01-01',
-        updatedAt: '2026-01-01',
-      },
-      status: 'ACCEPTED',
-      bookingDate: '2026-08-05',
-      slotTime: '10:00 AM - 12:00 PM',
-      totalAmount: 1500,
-      notes: 'House 12, Road 5, Dhanmondi, Dhaka',
-      createdAt: '2026-08-01',
-      updatedAt: '2026-08-01',
+async function getTechnicianOverviewData() {
+  const bookings: any[] = await getTechnicianBookings();
+
+  // DynamicCalculations
+  const pendingRequests = bookings.filter(b => b.status === 'PENDING').length;
+  const upcomingJobs = bookings.filter(
+    b => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS',
+  ).length;
+  const completedJobs = bookings.filter(b => b.status === 'COMPLETED').length;
+
+  const totalEarnings = bookings
+    .filter(b => b.status === 'COMPLETED')
+    .reduce(
+      (sum, item) =>
+        sum + Number(item.totalAmount || item.price || item.amount || 0),
+      0,
+    );
+
+  const recentRequests = bookings.slice(0, 5).map(job => ({
+    id: job.id || job._id,
+    customerName:
+      job.customer?.name || job.user?.name || job.customerName || 'Customer',
+    serviceName:
+      job.serviceCategory?.categoryName ||
+      job.serviceCategory?.name ||
+      job.serviceTitle ||
+      'Home Service',
+    date:
+      job.bookingDate ||
+      (job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'),
+    timeSlot: job.timeSlot || job.slot || 'Standard Shift',
+    amount: job.totalAmount || job.price || job.amount || 0,
+    status: job.status || 'PENDING',
+  }));
+
+  return {
+    metrics: {
+      pendingRequests,
+      upcomingJobs,
+      completedJobs,
+      totalEarnings,
     },
-    {
-      id: 'JOB-2002',
-      customerId: 'cust-2',
-      customer: {
-        id: 'cust-2',
-        name: 'Tanvir Hossain',
-        email: 'tanvir@example.com',
-        role: 'CUSTOMER',
-        activeStatus: 'ACTIVE',
-        createdAt: '2026-01-01',
-        updatedAt: '2026-01-01',
-      },
-      technicianId: 'tech-1',
-      serviceId: 'srv-2',
-      service: {
-        id: 'srv-2',
-        title: 'Plumbing Repair & Pipe Leakage',
-        description: 'Fixing water leakages.',
-        price: 800,
-        categoryId: 'cat-2',
-        createdAt: '2026-01-01',
-        updatedAt: '2026-01-01',
-      },
-      status: 'COMPLETED',
-      bookingDate: '2026-08-02',
-      slotTime: '03:00 PM - 05:00 PM',
-      totalAmount: 800,
-      notes: 'Block B, Bashundhara R/A, Dhaka',
-      createdAt: '2026-08-01',
-      updatedAt: '2026-08-01',
-    },
-  ];
+    recentRequests,
+  };
 }
 
 export default async function TechnicianDashboardPage() {
   const userRes: IUserProfileResponse | null = await getUser();
-  if (!userRes?.data?.profile) redirect('/');
+  if (!userRes?.data?.profile) redirect('/login');
 
-  const jobs = await getTechnicianJobs();
-
-  const pendingCount = jobs.filter(
-    j => j.status === 'ACCEPTED' || j.status === 'REQUESTED',
-  ).length;
-  const completedCount = jobs.filter(j => j.status === 'COMPLETED').length;
-  const totalEarnings = jobs
-    .filter(j => j.status === 'COMPLETED')
-    .reduce((sum, j) => sum + j.totalAmount, 0);
+  const data = await getTechnicianOverviewData();
 
   return (
     <div className="space-y-6">
@@ -102,20 +72,42 @@ export default async function TechnicianDashboardPage() {
           Technician Dashboard
         </h1>
         <p className="text-sm text-muted-foreground">
-          Manage your assigned service requests, track schedules and update job
-          status.
+          Welcome back! Real-time metrics from your scheduled services and
+          earnings.
         </p>
       </div>
 
-      {/* JobCards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      {/* DynamicCards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Jobs</CardTitle>
-            <Clock className="w-4 h-4 text-amber-500" />
+            <CardTitle className="text-sm font-medium">
+              Pending Requests
+            </CardTitle>
+            <AlertCircle className="w-4 h-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingCount}</div>
+            <div className="text-2xl font-bold">
+              {data.metrics.pendingRequests}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Awaiting confirmation
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Upcoming Jobs</CardTitle>
+            <Calendar className="w-4 h-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {data.metrics.upcomingJobs}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Accepted & in-progress
+            </p>
           </CardContent>
         </Card>
 
@@ -124,88 +116,83 @@ export default async function TechnicianDashboardPage() {
             <CardTitle className="text-sm font-medium">
               Completed Jobs
             </CardTitle>
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{completedCount}</div>
+            <div className="text-2xl font-bold">
+              {data.metrics.completedJobs}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Successful services
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Earned</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Earnings
+            </CardTitle>
             <DollarSign className="w-4 h-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-primary">
-              ${totalEarnings}
+              ${data.metrics.totalEarnings.toLocaleString()}
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Completed jobs revenue
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* JobsList */}
+      {/* DynamicActivityList */}
       <div className="space-y-4">
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <Wrench className="w-5 h-5 text-primary" /> Assigned Jobs & Schedule
+          <Clock className="w-5 h-5 text-primary" /> Active Job Requests
         </h2>
 
-        {jobs.length === 0 ? (
-          <Card className="p-8 text-center text-muted-foreground">
-            No assigned jobs available right now.
+        {data.recentRequests.length === 0 ? (
+          <Card className="p-6 text-center text-muted-foreground">
+            No active job requests found in your queue.
           </Card>
         ) : (
           <div className="grid gap-4">
-            {jobs.map(job => (
+            {data.recentRequests.map(job => (
               <Card key={job.id}>
-                <CardContent className="p-5 flex flex-col md:flex-row justify-between gap-4">
-                  <div className="space-y-2 flex-1">
+                <CardContent className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-base">
-                        {job.service?.title}
+                        {job.serviceName}
                       </span>
                       <Badge
                         className={
-                          job.status === 'COMPLETED'
-                            ? 'bg-green-500/10 text-green-600'
-                            : 'bg-amber-500/10 text-amber-600'
+                          job.status === 'ACCEPTED'
+                            ? 'bg-blue-500/10 text-blue-600'
+                            : job.status === 'COMPLETED'
+                              ? 'bg-green-500/10 text-green-600'
+                              : 'bg-amber-500/10 text-amber-600'
                         }
                       >
                         {job.status}
                       </Badge>
                     </div>
-
                     <p className="text-sm text-muted-foreground">
                       Customer:{' '}
                       <span className="font-medium text-foreground">
-                        {job.customer?.name}
-                      </span>{' '}
-                      ({job.customer?.email})
+                        {job.customerName}
+                      </span>
                     </p>
-
-                    <div className="grid sm:grid-cols-2 gap-2 text-xs text-muted-foreground pt-1">
-                      <p className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" /> {job.bookingDate} (
-                        {job.slotTime})
-                      </p>
-                      <p className="flex items-center gap-1 truncate">
-                        <MapPin className="w-3.5 h-3.5 shrink-0" />{' '}
-                        {job.notes || 'N/A'}
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      📅 Date: {job.date} | ⏰ Slot: {job.timeSlot}
+                    </p>
                   </div>
 
-                  {/* ActionsAndPrice */}
-                  <div className="flex flex-col justify-between items-start md:items-end border-t md:border-t-0 pt-3 md:pt-0 border-border">
-                    <p className="text-lg font-bold text-primary">
-                      ৳{job.totalAmount}
-                    </p>
-
-                    {job.status === 'ACCEPTED' && (
-                      <Button size="sm" variant="default" className="mt-2">
-                        Mark Completed
-                      </Button>
-                    )}
+                  <div className="flex items-center gap-4">
+                    <span className="text-lg font-bold text-primary">
+                      ৳{job.amount}
+                    </span>
                   </div>
                 </CardContent>
               </Card>

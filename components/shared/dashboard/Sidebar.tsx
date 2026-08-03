@@ -15,6 +15,8 @@ import {
   Home,
   Menu,
   X,
+  Clock,
+  CheckSquare,
 } from 'lucide-react';
 import { ISidebarItem, IUserRole } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -29,7 +31,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // NavLinks mapped by User Role
+  // NavLinksUserRole
   const navLinks: Record<IUserRole, ISidebarItem[]> = {
     CUSTOMER: [
       {
@@ -65,24 +67,19 @@ export default function Sidebar({ role, userName }: SidebarProps) {
         icon: LayoutDashboard,
       },
       {
-        label: 'Services',
-        href: '/dashboard/technician-dashboard/services',
-        icon: Wrench,
+        label: 'Booking Management',
+        href: '/dashboard/technician-dashboard/bookings',
+        icon: CheckSquare,
       },
       {
-        label: 'Jobs',
-        href: '/dashboard/technician-dashboard/jobs',
-        icon: Wrench,
+        label: 'Availability Scheduler',
+        href: '/dashboard/technician-dashboard/availability',
+        icon: Clock,
       },
       {
-        label: 'Earnings',
-        href: '/dashboard/technician-dashboard/earnings',
-        icon: CreditCard,
-      },
-      {
-        label: 'My Profile',
+        label: 'Profile',
         href: '/dashboard/technician-dashboard/profile',
-        icon: UserIcon,
+        icon: Wrench,
       },
     ],
     ADMIN: [
@@ -151,7 +148,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
         </Button>
       </div>
 
-      {/* MobileDrawer */}
+      {/* MobileDrawerOverlay */}
       {mobileOpen && (
         <div
           className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm md:hidden"
@@ -200,7 +197,7 @@ export default function Sidebar({ role, userName }: SidebarProps) {
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-150',
                   active
-                    ? 'bg-primary text-primary-foreground font-semibold shadow-sm'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                 )}
               >
