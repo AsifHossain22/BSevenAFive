@@ -20,7 +20,7 @@ async function getAuthHeaders() {
   };
 }
 
-//  GetTechnicianBookings
+// GetTechnicianBookings
 export async function getTechnicianBookings() {
   try {
     const headers = await getAuthHeaders();

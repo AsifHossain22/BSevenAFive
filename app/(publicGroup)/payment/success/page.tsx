@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -35,11 +34,8 @@ export default function ServicesPage() {
     async function fetchServices() {
       try {
         setLoading(true);
-        const res = await getAllServices();
-        const dataList = Array.isArray(res)
-          ? res
-          : res?.data || res?.result || [];
-        setServices(Array.isArray(dataList) ? dataList : []);
+        const data = await getAllServices();
+        setServices(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load services:', err);
       } finally {
@@ -49,57 +45,19 @@ export default function ServicesPage() {
     fetchServices();
   }, []);
 
-  const getCategoryName = (service: any): string => {
-    if (!service) return 'General';
-    if (typeof service.category === 'object' && service.category !== null) {
-      return (
-        service.category.categoryName || service.category.name || 'General'
-      );
-    }
-    if (
-      typeof service.serviceCategory === 'object' &&
-      service.serviceCategory !== null
-    ) {
-      return (
-        service.serviceCategory.categoryName ||
-        service.serviceCategory.name ||
-        'General'
-      );
-    }
-    return typeof service.category === 'string'
-      ? service.category
-      : service.categoryName || 'General';
-  };
-
-  const getTechnicianName = (service: any): string => {
-    if (!service) return 'Verified Tech';
-    if (typeof service.technician === 'object' && service.technician !== null) {
-      return (
-        service.technician.name ||
-        service.technician.userName ||
-        'Verified Tech'
-      );
-    }
-    if (typeof service.user === 'object' && service.user !== null) {
-      return service.user.name || 'Verified Tech';
-    }
-    return typeof service.technician === 'string'
-      ? service.technician
-      : service.technicianName || 'Verified Tech';
-  };
-
-  const getServiceTitle = (service: any): string => {
-    if (!service) return 'Home Repair Service';
-    if (typeof service.title === 'string') return service.title;
-    if (typeof service.name === 'string') return service.name;
-    return getCategoryName(service);
-  };
-
+  // FilterServices
   const filteredServices = services.filter(service => {
-    const title = getServiceTitle(service);
-    const categoryName = getCategoryName(service);
-    const description =
-      typeof service.description === 'string' ? service.description : '';
+    const title =
+      typeof service.title === 'string'
+        ? service.title
+        : service.name || service.categoryName || '';
+
+    const categoryName =
+      typeof service.category === 'object'
+        ? service.category?.categoryName || service.category?.name || ''
+        : service.category || '';
+
+    const description = service.description || service.bio || '';
     const matchTerm = searchTerm.toLowerCase();
 
     return (
@@ -163,9 +121,29 @@ export default function ServicesPage() {
             const sId = service.id || service._id;
             const price =
               service.price || service.hourlyRate || service.amount || 0;
-            const title = getServiceTitle(service);
-            const categoryLabel = getCategoryName(service);
-            const techName = getTechnicianName(service);
+            const title =
+              typeof service.title === 'string'
+                ? service.title
+                : service.name || 'Home Repair Service';
+
+            // Category
+            const categoryLabel =
+              typeof service.category === 'object'
+                ? service.category?.categoryName ||
+                  service.category?.name ||
+                  'General'
+                : service.category || service.categoryName || 'General';
+
+            // Technician
+            const techName =
+              typeof service.technician === 'object'
+                ? service.technician?.name ||
+                  service.technician?.userName ||
+                  'Verified Tech'
+                : service.technician ||
+                  service.technicianName ||
+                  'Verified Tech';
+
             const rating = service.rating || service.averageRating || 4.9;
 
             return (
@@ -190,9 +168,8 @@ export default function ServicesPage() {
 
                 <CardContent className="flex-1 space-y-3 text-sm">
                   <p className="text-muted-foreground line-clamp-2">
-                    {typeof service.description === 'string'
-                      ? service.description
-                      : 'Professional home repair and maintenance service guaranteed by verified local experts.'}
+                    {service.description ||
+                      'Professional home repair and maintenance service guaranteed by verified local experts.'}
                   </p>
 
                   <div className="pt-2 border-t space-y-1.5 text-xs text-muted-foreground">
@@ -218,15 +195,13 @@ export default function ServicesPage() {
                       Starting from
                     </span>
                     <span className="text-lg font-extrabold text-primary">
-                      ${price}
+                      ৳{price}
                     </span>
                   </div>
 
-                  <Button asChild className="gap-1 cursor-pointer">
-                    <Link href={`/booking/${sId}`}>
-                      <span className="flex items-center gap-2">
-                        Book Now <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
+                  <Button size="sm" asChild className="gap-1 cursor-pointer">
+                    <Link href={`/services/${sId}`}>
+                      Book Now <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </Button>
                 </CardFooter>
