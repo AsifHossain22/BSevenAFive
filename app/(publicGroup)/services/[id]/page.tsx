@@ -102,7 +102,7 @@ export default function ServiceDetailsPage({ params }: ServicePageProps) {
         <p className="text-muted-foreground text-sm">
           {error || 'The requested service could not be found.'}
         </p>
-        <Button asChild variant="outline" className="mt-4">
+        <Button variant="outline" className="mt-4">
           <Link href="/services">
             <span className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" /> <span>Back to Services</span>

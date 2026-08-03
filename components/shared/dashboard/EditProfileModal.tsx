@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 interface EditProfileModalProps {
   initialProfile: {
     name?: string;
-    phone?: string;
+    phone?: string | number;
     address?: string;
   };
 }
@@ -55,7 +55,7 @@ export default function EditProfileModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         <Button variant="outline" size="sm" className="gap-2 cursor-pointer">
           <Edit className="w-4 h-4" /> Edit Profile
         </Button>

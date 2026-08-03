@@ -15,7 +15,7 @@ export default function PaymentCancelPage() {
             again from your booking dashboard.
           </p>
           <div className="pt-4 flex flex-col gap-2">
-            <Button asChild>
+            <Button>
               <Link href="/dashboard/customer-dashboard/bookings">
                 Return to Bookings
               </Link>

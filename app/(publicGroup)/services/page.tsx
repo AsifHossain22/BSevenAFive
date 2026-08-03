@@ -222,7 +222,7 @@ export default function ServicesPage() {
                     </span>
                   </div>
 
-                  <Button asChild className="gap-1 cursor-pointer">
+                  <Button className="gap-1 cursor-pointer">
                     <Link href={`/booking/${sId}`}>
                       <span className="flex items-center gap-2">
                         Book Now <ArrowRight className="w-3.5 h-3.5" />

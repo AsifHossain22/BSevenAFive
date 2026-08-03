@@ -199,7 +199,7 @@ export default function ServicesPage() {
                     </span>
                   </div>
 
-                  <Button size="sm" asChild className="gap-1 cursor-pointer">
+                  <Button size="sm" className="gap-1 cursor-pointer">
                     <Link href={`/services/${sId}`}>
                       Book Now <ArrowRight className="w-3.5 h-3.5" />
                     </Link>

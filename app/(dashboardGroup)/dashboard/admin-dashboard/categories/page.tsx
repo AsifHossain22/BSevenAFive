@@ -146,7 +146,7 @@ export default function AdminCategoriesPage() {
 
         {/* AddCategoryModal */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger>
             <Button className="flex items-center gap-2 cursor-pointer">
               <Plus className="w-4 h-4" /> Add Category
             </Button>

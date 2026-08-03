@@ -197,7 +197,6 @@ export default function TechniciansPage() {
 
                 <CardFooter className="pt-3 border-t flex items-center gap-2">
                   <Button
-                    asChild
                     variant="outline"
                     className="flex-1 cursor-pointer text-xs"
                   >

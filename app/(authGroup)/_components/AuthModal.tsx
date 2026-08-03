@@ -34,7 +34,7 @@ export function AuthModal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger>
         <Button variant={variant} className="cursor-pointer">
           {triggerText}
         </Button>

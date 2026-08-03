@@ -116,7 +116,7 @@ export default function CustomerDashboardOverview() {
             activity.
           </p>
         </div>
-        <Button asChild className="shrink-0 gap-2 cursor-pointer">
+        <Button className="shrink-0 gap-2 cursor-pointer">
           <Link href="/services">
             <PlusCircle className="w-4 h-4" /> Book New Service
           </Link>
@@ -196,12 +196,7 @@ export default function CustomerDashboardOverview() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Recent Bookings</CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            asChild
-            className="gap-1 cursor-pointer"
-          >
+          <Button variant="ghost" size="sm" className="gap-1 cursor-pointer">
             <Link href="/dashboard/customer-dashboard/bookings">
               View All <ArrowRight className="w-4 h-4" />
             </Link>

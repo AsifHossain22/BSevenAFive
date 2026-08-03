@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, Suspense } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,7 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
-export default function LoginForm({ onSuccess }: LoginFormProps) {
+function LoginFormContent({ onSuccess }: LoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect') || null;
@@ -65,5 +65,19 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
         {pending ? 'Logging in...' : 'Login'}
       </Button>
     </form>
+  );
+}
+
+export default function LoginForm(props: LoginFormProps) {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-4 text-center text-sm text-muted-foreground">
+          Loading form...
+        </div>
+      }
+    >
+      <LoginFormContent {...props} />
+    </Suspense>
   );
 }
