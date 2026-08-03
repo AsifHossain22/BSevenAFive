@@ -2,7 +2,6 @@ import { getUser } from '@/service/getUser';
 import { redirect } from 'next/navigation';
 import { IUserProfileResponse, IUserRole } from '@/lib/types';
 import Sidebar from '@/components/shared/dashboard/Sidebar';
-import { Footer } from '@/components/shared/Footer';
 
 export default async function DashboardLayout({
   children,

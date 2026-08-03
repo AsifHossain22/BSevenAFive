@@ -1,5 +1,5 @@
 import UserProfileView from '@/components/shared/dashboard/UserProfileView';
 
-export default function AdminProfilePage() {
+export default function CustomerProfilePage() {
   return <UserProfileView />;
 }

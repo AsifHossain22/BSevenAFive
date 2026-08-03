@@ -1,5 +1,5 @@
-const TechnicianProfilePage = () => {
-  return <div>Technician Profile Page</div>;
-};
+import UserProfileView from '@/components/shared/dashboard/UserProfileView';
 
-export default TechnicianProfilePage;
+export default function TechnicianProfilePage() {
+  return <UserProfileView />;
+}
