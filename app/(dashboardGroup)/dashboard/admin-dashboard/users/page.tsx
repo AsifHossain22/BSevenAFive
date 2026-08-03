@@ -101,7 +101,7 @@ export default function AdminUsersPage() {
       {loading ? (
         <Card className="p-8 flex items-center justify-center text-muted-foreground">
           <Loader2 className="w-6 h-6 animate-spin mr-2" />
-          Loading users from server...
+          Loading users...
         </Card>
       ) : error ? (
         <Card className="p-8 text-center text-destructive">{error}</Card>
