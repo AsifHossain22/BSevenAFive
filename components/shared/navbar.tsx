@@ -93,7 +93,7 @@ export function Navbar({ user }: NavbarProps) {
           {/* UserDropdown */}
           {isAuthenticated ? (
             <DropdownMenu>
-              <DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild>
                 <button className="cursor-pointer outline-none rounded-full focus:ring-2 focus:ring-primary/20">
                   <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 transition-colors">
                     <User className="w-5 h-5 text-primary" />
