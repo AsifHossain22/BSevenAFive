@@ -117,7 +117,7 @@ export default function CustomerDashboardOverview() {
           </p>
         </div>
         <Button className="shrink-0 gap-2 cursor-pointer">
-          <Link href="/services">
+          <Link href="/services" className="flex items-center gap-1">
             <PlusCircle className="w-4 h-4" /> Book New Service
           </Link>
         </Button>
@@ -197,7 +197,10 @@ export default function CustomerDashboardOverview() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-lg">Recent Bookings</CardTitle>
           <Button variant="ghost" size="sm" className="gap-1 cursor-pointer">
-            <Link href="/dashboard/customer-dashboard/bookings">
+            <Link
+              href="/dashboard/customer-dashboard/bookings"
+              className="flex items-center gap-1"
+            >
               View All <ArrowRight className="w-4 h-4" />
             </Link>
           </Button>

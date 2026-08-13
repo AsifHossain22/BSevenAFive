@@ -1,21 +1,33 @@
+import Link from 'next/link';
 import RegisterForm from '../_components/RegisterForm';
 
 export default function RegisterPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="w-full max-w-md space-y-6 rounded-lg border p-8 shadow-lg">
-        {/* FormGenericTexts */}
+    <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-6 rounded-xl border bg-card p-8 shadow-sm">
+        {/* HeaderSection */}
         <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">
-            Are you new here. Lets explore Fix It Up!
+          <h1 className="text-2xl font-bold tracking-tight">
+            Explore FixItNow!
           </h1>
-          <p className="text-gray-500">
-            Enter your credentials to register your account
+          <p className="text-sm text-muted-foreground">
+            Enter your details below to create your new account
           </p>
         </div>
 
-        {/* RegisterForm */}
+        {/* Register Form */}
         <RegisterForm />
+
+        {/* SwitchRouteLink */}
+        <p className="text-center text-sm text-muted-foreground">
+          Already have an account?{' '}
+          <Link
+            href="/login"
+            className="font-medium text-primary hover:underline"
+          >
+            Login
+          </Link>
+        </p>
       </div>
     </div>
   );

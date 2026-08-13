@@ -10,13 +10,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LayoutDashboard, LogOut, Settings, User, Wrench } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { LayoutDashboard, LogOut, User, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { NavbarProps } from '@/lib/types';
 import { logout } from '@/service/logout';
-import { AuthModal } from '@/app/(authGroup)/_components/AuthModal';
 
 // NavItems
 const navItems = [
@@ -94,11 +94,14 @@ export function Navbar({ user }: NavbarProps) {
           {isAuthenticated ? (
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <div className="cursor-pointer outline-none rounded-full focus:ring-2 focus:ring-primary/20">
+                <button
+                  type="button"
+                  className="cursor-pointer outline-none rounded-full focus:ring-2 focus:ring-primary/20"
+                >
                   <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center hover:bg-primary/20 transition-colors">
                     <User className="w-5 h-5 text-primary" />
                   </div>
-                </div>
+                </button>
               </DropdownMenuTrigger>
 
               <DropdownMenuContent align="end" className="w-56">
@@ -141,16 +144,12 @@ export function Navbar({ user }: NavbarProps) {
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-2">
-              <AuthModal
-                defaultTab="login"
-                triggerText="Login"
-                variant="ghost"
-              />
-              <AuthModal
-                defaultTab="register"
-                triggerText="Register"
-                variant="default"
-              />
+              <Button variant="ghost">
+                <Link href="/login">Login</Link>
+              </Button>
+              <Button variant="default">
+                <Link href="/register">Register</Link>
+              </Button>
             </div>
           )}
         </div>
