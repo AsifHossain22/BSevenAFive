@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import { JwtPayload } from 'jsonwebtoken';
+import { jwtUtils } from './utils/jwt';
+import { cookies } from 'next/headers';
 
 const AUTH_ROUTES = ['/register', '/login'];
 const PUBLIC_ROUTES = ['/', '/services', '/technicians'];
@@ -8,13 +10,25 @@ const PUBLIC_ROUTES = ['/', '/services', '/technicians'];
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  const cookieStore = await cookies();
+
   const accessToken = request.cookies.get('accessToken')?.value;
 
   const decodedAccessToken = accessToken
-    ? (jwt.decode(accessToken) as JwtPayload)
+    ? jwtUtils.verifyToken(accessToken, process.env.JWT_ACCESS_SECRET as string)
     : null;
 
-  const userRole = decodedAccessToken?.role || null;
+  let userRole = null;
+
+  // TokenExpiredClearCookies
+  if (!decodedAccessToken?.success) {
+    cookieStore.delete('accessToken');
+    // return NextResponse.redirect(new URL('/login', request.url));
+  }
+
+  if (decodedAccessToken?.success && decodedAccessToken.data) {
+    userRole = (decodedAccessToken?.data as JwtPayload).role;
+  }
 
   const isAuthRoute = AUTH_ROUTES.some(
     route => pathname === route || pathname.startsWith(`${route}/`),
