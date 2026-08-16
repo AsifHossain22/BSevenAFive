@@ -68,12 +68,12 @@ export async function getTechnicianBookings() {
   }
 }
 
-// UpdateBookingStatus [Accept | Decline | Start | Complete]
+// UpdateBookingStatus [ACCEPTED | DECLINED | IN_PROGRESS | COMPLETED | CANCELLED]
 export async function updateBookingStatus(bookingId: string, status: string) {
   try {
     const headers = await getAuthHeaders();
 
-    let res = await fetch(
+    const res = await fetch(
       `${BACKEND_URL}/api/technician/bookings/${bookingId}`,
       {
         method: 'PATCH',
@@ -82,30 +82,14 @@ export async function updateBookingStatus(bookingId: string, status: string) {
       },
     );
 
-    if (!res.ok) {
-      res = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}`, {
-        method: 'PATCH',
-        headers,
-        body: JSON.stringify({ status }),
-      });
-    }
+    const data = await res.json().catch(() => ({}));
 
     if (!res.ok) {
-      res = await fetch(
-        `${BACKEND_URL}/api/bookings/${bookingId}/${status.toLowerCase()}`,
-        {
-          method: 'PATCH',
-          headers,
-        },
-      );
-    }
-
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.message || `Failed to update status to ${status}`);
+      throw new Error(data?.message || `Failed to update status to ${status}.`);
     }
 
     // RevalidateCustomerAndTechnicianRoutes
+    revalidatePath('/dashboard', 'layout');
     revalidatePath('/dashboard/technician-dashboard');
     revalidatePath('/dashboard/technician-dashboard/bookings');
     revalidatePath('/dashboard/customer-dashboard/bookings');
@@ -152,9 +136,10 @@ export async function updateTechnicianProfile(payload: {
       body: JSON.stringify(payload),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
-      throw new Error(data.message || 'Failed to update technician profile.');
+      throw new Error(data?.message || 'Failed to update technician profile.');
     }
 
     revalidatePath('/dashboard/technician-dashboard/profile');
@@ -196,10 +181,11 @@ export async function updateTechnicianAvailability(
       body: JSON.stringify({ schedule }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+
     if (!res.ok) {
       throw new Error(
-        data.message || 'Failed to update availability schedule.',
+        data?.message || 'Failed to update availability schedule.',
       );
     }
 

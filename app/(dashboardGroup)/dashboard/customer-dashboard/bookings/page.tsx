@@ -14,14 +14,20 @@ import {
   MapPin,
   Wrench,
   DollarSign,
+  CreditCard,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getCustomerBookings, cancelBooking } from '@/service/customerService';
+import {
+  getCustomerBookings,
+  cancelBooking,
+  initiatePayment,
+} from '@/service/customerService';
 
 export default function CustomerBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<any[]>([]);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -81,6 +87,32 @@ export default function CustomerBookingsPage() {
     }
   };
 
+  const handlePayNow = async (id: string) => {
+    setPayingId(id);
+    const toastId = toast.loading('Initializing payment session...');
+
+    try {
+      const data = await initiatePayment(id);
+      const paymentUrl =
+        data?.data?.paymentUrl || data?.paymentUrl || data?.url;
+
+      if (paymentUrl) {
+        toast.success('Redirecting to payment gateway...', { id: toastId });
+        window.location.href = paymentUrl;
+      } else {
+        toast.error(data?.message || 'Failed to get payment checkout URL.', {
+          id: toastId,
+        });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error initiating payment process.', {
+        id: toastId,
+      });
+    } finally {
+      setPayingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-87.5 space-y-3">
@@ -118,8 +150,9 @@ export default function CustomerBookingsPage() {
             const status = rawStatus.toUpperCase();
 
             const isPending = status === 'REQUESTED' || status === 'PENDING';
-            const isAccepted =
-              status === 'ACCEPTED' || status === 'IN_PROGRESS';
+            const isAccepted = status === 'ACCEPTED';
+            const isInProgress = status === 'IN_PROGRESS';
+            const isPaid = status === 'PAID' || status === 'CONFIRMED';
             const isCompleted = status === 'COMPLETED';
             const isCancelled =
               status === 'CANCELLED' ||
@@ -127,6 +160,7 @@ export default function CustomerBookingsPage() {
               status === 'REJECTED';
 
             const isActionLoading = cancellingId === id;
+            const isPayLoading = payingId === id;
 
             const serviceTitle =
               req.service?.title ||
@@ -189,9 +223,23 @@ export default function CustomerBookingsPage() {
                             variant="outline"
                             className="bg-blue-500/10 text-blue-600 border-blue-300 font-medium"
                           >
-                            {status === 'IN_PROGRESS'
-                              ? 'In Progress'
-                              : 'Confirmed'}
+                            Accepted (Payment Pending)
+                          </Badge>
+                        )}
+                        {isInProgress && (
+                          <Badge
+                            variant="outline"
+                            className="bg-blue-500/10 text-blue-600 border-blue-300 font-medium"
+                          >
+                            In Progress
+                          </Badge>
+                        )}
+                        {isPaid && (
+                          <Badge
+                            variant="outline"
+                            className="bg-sky-500/10 text-sky-600 border-sky-300 font-medium"
+                          >
+                            Confirmed & Paid
                           </Badge>
                         )}
                         {isCompleted && (
@@ -249,13 +297,29 @@ export default function CustomerBookingsPage() {
                     </div>
                   </div>
 
-                  {isPending && (
-                    <div className="pt-4 border-t border-border/50 flex items-center justify-end">
+                  {(isPending || isAccepted) && (
+                    <div className="pt-4 border-t border-border/50 flex flex-wrap items-center justify-end gap-3">
+                      {isAccepted && (
+                        <Button
+                          size="default"
+                          className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 gap-2 cursor-pointer font-semibold"
+                          disabled={isPayLoading}
+                          onClick={() => handlePayNow(id)}
+                        >
+                          {isPayLoading ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <CreditCard className="w-4 h-4" />
+                          )}
+                          Pay Now
+                        </Button>
+                      )}
+
                       <Button
                         size="default"
                         variant="outline"
                         className="w-full sm:w-auto border-destructive/40 text-destructive hover:bg-destructive/10 gap-2 cursor-pointer"
-                        disabled={isActionLoading}
+                        disabled={isActionLoading || isPayLoading}
                         onClick={() => handleCancelBooking(id)}
                       >
                         {isActionLoading ? (

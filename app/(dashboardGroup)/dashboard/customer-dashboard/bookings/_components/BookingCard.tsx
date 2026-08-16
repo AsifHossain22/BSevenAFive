@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import {
   Calendar,
   Clock,
@@ -6,7 +8,9 @@ import {
   CheckCircle,
   AlertCircle,
   Clock3,
-  User,
+  CreditCard,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 
 export interface Booking {
@@ -17,7 +21,13 @@ export interface Booking {
     category?: { categoryName: string };
   };
   timeSlot: string;
-  status: 'REQUESTED' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED';
+  status:
+    | 'REQUESTED'
+    | 'ACCEPTED'
+    | 'PAID'
+    | 'CONFIRMED'
+    | 'COMPLETED'
+    | 'CANCELLED';
   address?: string;
   createdAt: string;
 }
@@ -27,12 +37,12 @@ interface BookingCardProps {
   onCancel?: (id: string) => void;
 }
 
-const BACKEND_URL = process.env.BACKEND_API_URL;
-
 export const BookingCard: React.FC<BookingCardProps> = ({
   booking,
   onCancel,
 }) => {
+  const [loading, setLoading] = useState(false);
+
   const formattedDate = new Date(booking.timeSlot).toLocaleDateString('en-US', {
     weekday: 'short',
     year: 'numeric',
@@ -45,8 +55,49 @@ export const BookingCard: React.FC<BookingCardProps> = ({
     minute: '2-digit',
   });
 
+  const handlePayNow = async () => {
+    try {
+      setLoading(true);
+      const BACKEND_URL = `${process.env.BACKEND_API_URL}`.replace(/\/$/, '');
+
+      const res = await fetch(`${BACKEND_URL}/payments/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ bookingId: booking.id }),
+      });
+
+      const data = await res.json();
+
+      if (data?.success && data?.data?.paymentUrl) {
+        window.location.href = data.data.paymentUrl;
+      } else {
+        alert(data?.message || 'Failed to initialize payment session.');
+      }
+    } catch (error) {
+      console.error('Payment initialization error:', error);
+      alert('An error occurred while redirecting to Stripe payment.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: Booking['status']) => {
     switch (status) {
+      case 'PAID':
+        return (
+          <span className="badge badge-paid">
+            <CheckCircle2 size={14} /> Paid
+          </span>
+        );
+      case 'ACCEPTED':
+        return (
+          <span className="badge badge-accepted">
+            <CreditCard size={14} /> Accepted
+          </span>
+        );
       case 'CONFIRMED':
         return (
           <span className="badge badge-confirmed">
@@ -105,11 +156,35 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           <span className="price-value">${booking.service.price}</span>
         </div>
 
-        {booking.status === 'REQUESTED' && onCancel && (
-          <button className="btn-cancel" onClick={() => onCancel(booking.id)}>
-            Cancel Booking
-          </button>
-        )}
+        {/* ActionButtons */}
+        <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
+          {booking.status === 'ACCEPTED' && (
+            <button
+              className="btn-pay"
+              onClick={handlePayNow}
+              disabled={loading}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                cursor: loading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                <CreditCard size={16} />
+              )}
+              {loading ? 'Processing...' : 'Pay Now'}
+            </button>
+          )}
+
+          {booking.status === 'REQUESTED' && onCancel && (
+            <button className="btn-cancel" onClick={() => onCancel(booking.id)}>
+              Cancel Booking
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -7,15 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Loader2,
-  Check,
-  X,
   Clock,
   Calendar,
   User,
   MapPin,
   Wrench,
   DollarSign,
-  Phone,
+  PlayCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -25,14 +24,10 @@ import {
 
 export default function TechnicianBookingsPage() {
   const [loading, setLoading] = useState(true);
-  const [requests, setRequests] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const [actionState, setActionState] = useState<{
-    id: string;
-    action: 'ACCEPTED' | 'DECLINED';
-  } | null>(null);
-
-  const fetchRequests = useCallback(async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       const resData = await getTechnicianBookings();
@@ -50,39 +45,34 @@ export default function TechnicianBookingsPage() {
         list = (resData as any).result;
       }
 
-      setRequests(list);
+      setBookings(list);
     } catch (err: any) {
-      toast.error(err.message || 'Could not fetch booking requests.');
+      toast.error(err.message || 'Could not fetch assigned bookings.');
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchRequests();
-  }, [fetchRequests]);
+    fetchBookings();
+  }, [fetchBookings]);
 
-  const handleStatusChange = async (
-    id: string,
-    newStatus: 'ACCEPTED' | 'DECLINED',
-  ) => {
-    setActionState({ id, action: newStatus });
+  const handleStatusChange = async (id: string, newStatus: string) => {
+    setUpdatingId(id);
     const toastId = toast.loading(
-      `Updating request to ${newStatus.toLowerCase()}...`,
+      `Updating status to ${newStatus.replace('_', ' ')}...`,
     );
 
     try {
       await updateBookingStatus(id, newStatus);
-      toast.success(`Booking ${newStatus.toLowerCase()} successfully!`, {
-        id: toastId,
-      });
+      toast.success(
+        `Booking status updated to ${newStatus.replace('_', ' ')}!`,
+        { id: toastId },
+      );
 
-      setRequests(prev => {
-        if (newStatus === 'DECLINED') {
-          return prev.filter(item => (item.id || item._id) !== id);
-        }
-
-        return prev.map(item => {
+      // UpdateState
+      setBookings(prev =>
+        prev.map(item => {
           const itemId = item.id || item._id;
           if (itemId === id) {
             return {
@@ -92,31 +82,23 @@ export default function TechnicianBookingsPage() {
             };
           }
           return item;
-        });
-      });
+        }),
+      );
     } catch (err: any) {
       toast.error(err.message || 'Failed to update booking status.', {
         id: toastId,
       });
     } finally {
-      setActionState(null);
+      setUpdatingId(null);
     }
   };
-
-  const visibleRequests = requests.filter(req => {
-    const rawStatus = req.status || req.bookingStatus || '';
-    const status = rawStatus.toUpperCase();
-    return (
-      status !== 'DECLINED' && status !== 'REJECTED' && status !== 'CANCELLED'
-    );
-  });
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-87.5 space-y-3">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
         <p className="text-sm text-muted-foreground">
-          Loading service requests...
+          Loading assigned bookings...
         </p>
       </div>
     );
@@ -125,55 +107,45 @@ export default function TechnicianBookingsPage() {
   return (
     <div className="space-y-6 max-w-4xl mx-auto p-4 sm:p-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Service Requests</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Assigned Jobs</h1>
         <p className="text-sm text-muted-foreground">
-          Review job details, verify schedules and accept or decline incoming
-          customer bookings.
+          Manage job progression from paid bookings to execution and completion.
         </p>
       </div>
 
-      {visibleRequests.length === 0 ? (
+      {bookings.length === 0 ? (
         <Card className="p-12 text-center border-dashed">
           <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-semibold">No Service Requests</h3>
+          <h3 className="text-lg font-semibold">No Jobs Assigned</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            You currently have no new or active job requests in your queue.
+            You currently have no service requests assigned.
           </p>
         </Card>
       ) : (
         <div className="flex flex-col gap-4">
-          {visibleRequests.map(req => {
+          {bookings.map(req => {
             const id = req.id || req._id;
             const rawStatus = req.status || req.bookingStatus || '';
             const status = rawStatus.toUpperCase();
 
-            const isPending = status === 'REQUESTED' || status === 'PENDING';
-            const isAccepted =
-              status === 'ACCEPTED' || status === 'IN_PROGRESS';
+            const isPaid = status === 'PAID' || status === 'CONFIRMED';
+            const isInProgress = status === 'IN_PROGRESS';
             const isCompleted = status === 'COMPLETED';
+            const isAccepted = status === 'ACCEPTED';
 
-            const isAccepting =
-              actionState?.id === id && actionState?.action === 'ACCEPTED';
-            const isDeclining =
-              actionState?.id === id && actionState?.action === 'DECLINED';
-            const isAnyActionLoading = actionState?.id === id;
+            const isUpdating = updatingId === id;
 
             const serviceTitle =
               req.service?.title ||
               req.serviceName ||
               req.serviceTitle ||
-              req.serviceCategory?.categoryName ||
-              'Home Maintenance Service';
+              'Booked Service';
 
             const customerName =
-              req.user?.name ||
               req.customer?.name ||
+              req.user?.name ||
               req.customerName ||
-              req.userName ||
-              'Client';
-
-            const phone =
-              req.user?.phone || req.customer?.phone || req.phone || 'N/A';
+              'Customer';
 
             const rawDate = req.bookingDate || req.createdAt || req.date;
             const dateStr = rawDate
@@ -186,19 +158,13 @@ export default function TechnicianBookingsPage() {
               : 'N/A';
 
             const timeSlot = req.timeSlot || req.slot || 'Standard Shift';
-
             const amount =
               req.totalAmount ??
               req.price ??
               req.amount ??
               req.service?.price ??
               0;
-
-            const address =
-              req.address ||
-              req.user?.address ||
-              req.customer?.address ||
-              'Service Location Provided on Acceptance';
+            const address = req.address || req.location || 'Customer Address';
 
             return (
               <Card
@@ -213,22 +179,29 @@ export default function TechnicianBookingsPage() {
                         <h3 className="text-lg font-bold text-foreground">
                           {serviceTitle}
                         </h3>
-                        {isPending && (
+
+                        {isAccepted && (
                           <Badge
                             variant="outline"
                             className="bg-amber-500/10 text-amber-600 border-amber-300 font-medium"
                           >
-                            Pending Request
+                            Awaiting Payment
                           </Badge>
                         )}
-                        {isAccepted && (
+                        {isPaid && (
+                          <Badge
+                            variant="outline"
+                            className="bg-sky-500/10 text-sky-600 border-sky-300 font-medium"
+                          >
+                            Paid & Ready
+                          </Badge>
+                        )}
+                        {isInProgress && (
                           <Badge
                             variant="outline"
                             className="bg-blue-500/10 text-blue-600 border-blue-300 font-medium"
                           >
-                            {status === 'IN_PROGRESS'
-                              ? 'In Progress'
-                              : 'Accepted'}
+                            In Progress
                           </Badge>
                         )}
                         {isCompleted && (
@@ -255,16 +228,11 @@ export default function TechnicianBookingsPage() {
                     <div className="flex items-center gap-2.5">
                       <User className="w-4 h-4 text-primary shrink-0" />
                       <span className="truncate">
-                        Client:{' '}
+                        Customer:{' '}
                         <strong className="text-foreground">
                           {customerName}
                         </strong>
                       </span>
-                    </div>
-
-                    <div className="flex items-center gap-2.5">
-                      <Phone className="w-4 h-4 text-primary shrink-0" />
-                      <span>{phone}</span>
                     </div>
 
                     <div className="flex items-center gap-2.5">
@@ -277,51 +245,44 @@ export default function TechnicianBookingsPage() {
                     <div className="flex items-center gap-2.5 sm:col-span-2 md:col-span-3">
                       <MapPin className="w-4 h-4 text-primary shrink-0" />
                       <span className="truncate">
-                        Address:{' '}
+                        Location:{' '}
                         <strong className="text-foreground">{address}</strong>
                       </span>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-border/50 flex flex-col sm:flex-row items-center justify-end gap-3">
-                    {isPending ? (
-                      <>
-                        {/* DeclineButton */}
-                        <Button
-                          size="default"
-                          variant="outline"
-                          className="w-full sm:w-auto border-destructive/40 text-destructive hover:bg-destructive/10 gap-2 cursor-pointer"
-                          disabled={isAnyActionLoading}
-                          onClick={() => handleStatusChange(id, 'DECLINED')}
-                        >
-                          {isDeclining ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <X className="w-4 h-4" />
-                          )}
-                          Decline Request
-                        </Button>
+                  {/* StatusProgressionControls */}
+                  <div className="pt-4 border-t border-border/50 flex flex-wrap items-center justify-end gap-3">
+                    {isPaid && (
+                      <Button
+                        size="default"
+                        className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2 cursor-pointer font-semibold"
+                        disabled={isUpdating}
+                        onClick={() => handleStatusChange(id, 'IN_PROGRESS')}
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <PlayCircle className="w-4 h-4" />
+                        )}
+                        Start Service (In Progress)
+                      </Button>
+                    )}
 
-                        {/* AcceptButton */}
-                        <Button
-                          size="default"
-                          className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white gap-2 cursor-pointer"
-                          disabled={isAnyActionLoading}
-                          onClick={() => handleStatusChange(id, 'ACCEPTED')}
-                        >
-                          {isAccepting ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Check className="w-4 h-4" />
-                          )}
-                          Accept Request
-                        </Button>
-                      </>
-                    ) : (
-                      <div className="text-xs text-muted-foreground italic text-right w-full">
-                        Status is updated to{' '}
-                        <strong className="uppercase">{status}</strong>
-                      </div>
+                    {isInProgress && (
+                      <Button
+                        size="default"
+                        className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white gap-2 cursor-pointer font-semibold"
+                        disabled={isUpdating}
+                        onClick={() => handleStatusChange(id, 'COMPLETED')}
+                      >
+                        {isUpdating ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4" />
+                        )}
+                        Mark as Completed
+                      </Button>
                     )}
                   </div>
                 </CardContent>

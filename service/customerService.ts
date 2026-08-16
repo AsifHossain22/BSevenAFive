@@ -189,13 +189,11 @@ export async function cancelBooking(bookingId: string) {
 export async function initiatePayment(bookingId: string) {
   try {
     const headers = await getAuthHeaders();
-    const res = await fetch(
-      `${BACKEND_URL}/api/payments/initiate/${bookingId}`,
-      {
-        method: 'POST',
-        headers,
-      },
-    );
+    const res = await fetch(`${BACKEND_URL}/api/payments/create`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ bookingId }),
+    });
 
     const data = await res.json();
     if (!res.ok) {
