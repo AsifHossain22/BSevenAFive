@@ -235,7 +235,7 @@ export default function CustomerDashboardOverview() {
 
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold text-primary">
-                        ৳
+                        $
                         {booking.totalAmount ||
                           booking.price ||
                           booking.amount ||

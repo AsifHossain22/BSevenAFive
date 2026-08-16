@@ -14,39 +14,82 @@ import { IUserProfileResponse } from '@/lib/types';
 import { getTechnicianBookings } from '@/service/technicianService';
 
 async function getTechnicianOverviewData() {
-  const bookings: any[] = await getTechnicianBookings();
+  const resData = await getTechnicianBookings();
 
-  // DynamicCalculations
-  const pendingRequests = bookings.filter(b => b.status === 'PENDING').length;
-  const upcomingJobs = bookings.filter(
-    b => b.status === 'ACCEPTED' || b.status === 'IN_PROGRESS',
-  ).length;
-  const completedJobs = bookings.filter(b => b.status === 'COMPLETED').length;
+  let bookings: any[] = [];
+  if (Array.isArray(resData)) {
+    bookings = resData;
+  } else if (Array.isArray(resData?.data)) {
+    bookings = resData.data;
+  } else if (Array.isArray(resData?.bookings)) {
+    bookings = resData.bookings;
+  } else if (Array.isArray(resData?.result)) {
+    bookings = resData.result;
+  }
+
+  const pendingRequests = bookings.filter(b => {
+    const s = (b.status || b.bookingStatus || '').toUpperCase();
+    return s === 'PENDING' || s === 'REQUESTED';
+  }).length;
+
+  const upcomingJobs = bookings.filter(b => {
+    const s = (b.status || b.bookingStatus || '').toUpperCase();
+    return s === 'ACCEPTED' || s === 'IN_PROGRESS';
+  }).length;
+
+  const completedJobs = bookings.filter(b => {
+    const s = (b.status || b.bookingStatus || '').toUpperCase();
+    return s === 'COMPLETED';
+  }).length;
 
   const totalEarnings = bookings
-    .filter(b => b.status === 'COMPLETED')
-    .reduce(
-      (sum, item) =>
-        sum + Number(item.totalAmount || item.price || item.amount || 0),
-      0,
-    );
+    .filter(b => {
+      const s = (b.status || b.bookingStatus || '').toUpperCase();
+      return s === 'COMPLETED';
+    })
+    .reduce((sum, item) => {
+      const val =
+        item.totalAmount ??
+        item.amount ??
+        item.price ??
+        item.service?.price ??
+        0;
+      return sum + Number(val);
+    }, 0);
 
-  const recentRequests = bookings.slice(0, 5).map(job => ({
-    id: job.id || job._id,
-    customerName:
-      job.customer?.name || job.user?.name || job.customerName || 'Customer',
-    serviceName:
+  const recentRequests = bookings.slice(0, 5).map(job => {
+    const status = (job.status || job.bookingStatus || 'PENDING').toUpperCase();
+    const customerName =
+      job.user?.name ||
+      job.customer?.name ||
+      job.customerName ||
+      job.userName ||
+      'Customer';
+
+    const serviceName =
+      job.service?.title ||
+      job.serviceName ||
+      job.serviceTitle ||
       job.serviceCategory?.categoryName ||
       job.serviceCategory?.name ||
-      job.serviceTitle ||
-      'Home Service',
-    date:
-      job.bookingDate ||
-      (job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'N/A'),
-    timeSlot: job.timeSlot || job.slot || 'Standard Shift',
-    amount: job.totalAmount || job.price || job.amount || 0,
-    status: job.status || 'PENDING',
-  }));
+      'Home Service';
+
+    const rawDate = job.bookingDate || job.createdAt || job.date;
+    const dateStr = rawDate ? new Date(rawDate).toLocaleDateString() : 'N/A';
+
+    const amount =
+      job.totalAmount ?? job.amount ?? job.price ?? job.service?.price ?? 0;
+
+    return {
+      id: job.id || job._id,
+      customerName,
+      serviceName,
+      date: dateStr,
+      timeSlot: job.timeSlot || job.slot || 'Standard Shift',
+      amount,
+      status,
+    };
+  });
 
   return {
     metrics: {
@@ -191,7 +234,7 @@ export default async function TechnicianDashboardPage() {
 
                   <div className="flex items-center gap-4">
                     <span className="text-lg font-bold text-primary">
-                      ৳{job.amount}
+                      ${job.amount.toFixed(2)}
                     </span>
                   </div>
                 </CardContent>

@@ -8,15 +8,25 @@ const BACKEND_URL = `${process.env.BACKEND_API_URL}`.replace(/\/$/, '');
 
 async function getAuthHeaders() {
   const cookieStore = await cookies();
-  const token =
-    cookieStore.get('accessToken')?.value || cookieStore.get('token')?.value;
+  const rawToken =
+    cookieStore.get('accessToken')?.value ||
+    cookieStore.get('token')?.value ||
+    '';
+
+  const authHeader = rawToken.startsWith('Bearer ')
+    ? rawToken
+    : rawToken
+      ? `Bearer ${rawToken}`
+      : '';
+
+  const cleanToken = rawToken.replace(/^Bearer\s+/i, '');
 
   return {
     'Content-Type': 'application/json',
-    ...(token && {
-      Authorization: `Bearer ${token}`,
-      Cookie: `accessToken=${token}`,
-    }),
+    ...(authHeader ? { Authorization: authHeader } : {}),
+    ...(cleanToken
+      ? { Cookie: `accessToken=${cleanToken}; token=${cleanToken}` }
+      : {}),
   };
 }
 
@@ -38,15 +48,20 @@ export async function getTechnicianBookings() {
       });
     }
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error('Fetch bookings failed. Status:', res.status);
+      return [];
+    }
 
     const resData = await res.json();
-    return (
-      resData.data ||
-      resData.bookings ||
-      resData.result ||
-      (Array.isArray(resData) ? resData : [])
-    );
+
+    if (Array.isArray(resData)) return resData;
+    if (Array.isArray(resData?.data)) return resData.data;
+    if (Array.isArray(resData?.data?.result)) return resData.data.result;
+    if (Array.isArray(resData?.bookings)) return resData.bookings;
+    if (Array.isArray(resData?.result)) return resData.result;
+
+    return [];
   } catch (error) {
     console.error('Error fetching technician bookings:', error);
     return [];
