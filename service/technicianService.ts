@@ -24,27 +24,29 @@ async function getAuthHeaders() {
 export async function getTechnicianBookings() {
   try {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${BACKEND_URL}/api/technician/bookings`, {
+    let res = await fetch(`${BACKEND_URL}/api/technician/bookings`, {
       method: 'GET',
       headers,
       cache: 'no-store',
     });
 
     if (!res.ok) {
-      const fallbackRes = await fetch(`${BACKEND_URL}/api/bookings`, {
+      res = await fetch(`${BACKEND_URL}/api/bookings`, {
         method: 'GET',
         headers,
         cache: 'no-store',
       });
-      if (!fallbackRes.ok) return [];
-      const fallbackData = await fallbackRes.json();
-      return (
-        fallbackData.data || (Array.isArray(fallbackData) ? fallbackData : [])
-      );
     }
 
+    if (!res.ok) return [];
+
     const resData = await res.json();
-    return resData.data || (Array.isArray(resData) ? resData : []);
+    return (
+      resData.data ||
+      resData.bookings ||
+      resData.result ||
+      (Array.isArray(resData) ? resData : [])
+    );
   } catch (error) {
     console.error('Error fetching technician bookings:', error);
     return [];
@@ -55,7 +57,8 @@ export async function getTechnicianBookings() {
 export async function updateBookingStatus(bookingId: string, status: string) {
   try {
     const headers = await getAuthHeaders();
-    const res = await fetch(
+
+    let res = await fetch(
       `${BACKEND_URL}/api/technician/bookings/${bookingId}`,
       {
         method: 'PATCH',
@@ -64,13 +67,33 @@ export async function updateBookingStatus(bookingId: string, status: string) {
       },
     );
 
-    const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Failed to update status');
+      res = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ status }),
+      });
     }
 
+    if (!res.ok) {
+      res = await fetch(
+        `${BACKEND_URL}/api/bookings/${bookingId}/${status.toLowerCase()}`,
+        {
+          method: 'PATCH',
+          headers,
+        },
+      );
+    }
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || `Failed to update status to ${status}`);
+    }
+
+    // RevalidateCustomerAndTechnicianRoutes
     revalidatePath('/dashboard/technician-dashboard');
     revalidatePath('/dashboard/technician-dashboard/bookings');
+    revalidatePath('/dashboard/customer-dashboard/bookings');
 
     return data;
   } catch (error: any) {

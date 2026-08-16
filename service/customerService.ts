@@ -93,14 +93,23 @@ export async function getServiceById(id: string) {
 export async function getCustomerBookings() {
   try {
     const headers = await getAuthHeaders();
-    const res = await fetch(`${BACKEND_URL}/api/bookings/my-bookings`, {
+
+    const res = await fetch(`${BACKEND_URL}/api/bookings`, {
       method: 'GET',
       headers,
       cache: 'no-store',
       next: { revalidate: 0 },
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(
+        'Failed to fetch customer bookings:',
+        res.status,
+        res.statusText,
+      );
+      return [];
+    }
+
     const resData = await res.json();
 
     if (Array.isArray(resData)) return resData;
@@ -120,9 +129,9 @@ export async function getCustomerBookings() {
 export async function createBooking(payload: {
   serviceId: string;
   technicianId?: string;
-  bookingDate: string;
+  bookingDate?: string;
   timeSlot: string;
-  address: string;
+  address?: string;
   notes?: string;
 }) {
   try {
@@ -138,7 +147,11 @@ export async function createBooking(payload: {
       throw new Error(data.message || 'Failed to place booking request.');
     }
 
+    revalidatePath('/dashboard', 'layout');
+    revalidatePath('/dashboard/customer-dashboard');
     revalidatePath('/dashboard/customer-dashboard/bookings');
+    revalidatePath('/dashboard/technician-dashboard/bookings');
+
     return data;
   } catch (error: any) {
     console.error('Error creating booking:', error);
@@ -150,6 +163,7 @@ export async function createBooking(payload: {
 export async function cancelBooking(bookingId: string) {
   try {
     const headers = await getAuthHeaders();
+
     const res = await fetch(`${BACKEND_URL}/api/bookings/${bookingId}/cancel`, {
       method: 'PATCH',
       headers,
@@ -160,7 +174,10 @@ export async function cancelBooking(bookingId: string) {
       throw new Error(data.message || 'Failed to cancel booking.');
     }
 
+    revalidatePath('/dashboard', 'layout');
+    revalidatePath('/dashboard/customer-dashboard');
     revalidatePath('/dashboard/customer-dashboard/bookings');
+    revalidatePath('/dashboard/technician-dashboard/bookings');
     return data;
   } catch (error: any) {
     console.error('Error cancelling booking:', error);
@@ -222,49 +239,40 @@ export async function submitReview(payload: {
 // GetCustomerDashboardSummary
 export async function getCustomerDashboardSummary() {
   try {
-    const headers = await getAuthHeaders();
-    const res = await fetch(`${BACKEND_URL}/api/bookings/my-bookings/stats`, {
-      method: 'GET',
-      headers,
-      cache: 'no-store',
-    });
+    const bookings = await getCustomerBookings();
 
-    if (!res.ok) {
-      const bookings = await getCustomerBookings();
+    const totalBookings = bookings.length;
 
-      const totalBookings = bookings.length;
-      const activeBookings = bookings.filter(
-        (b: any) =>
-          b.status === 'PENDING' ||
-          b.status === 'ACCEPTED' ||
-          b.status === 'IN_PROGRESS',
-      ).length;
-      const completedBookings = bookings.filter(
-        (b: any) => b.status === 'COMPLETED',
-      ).length;
-      const totalSpent = bookings
-        .filter(
-          (b: any) => b.paymentStatus === 'PAID' || b.status === 'COMPLETED',
-        )
-        .reduce(
-          (sum: number, b: any) =>
-            sum + Number(b.totalAmount || b.price || b.amount || 0),
-          0,
-        );
+    const activeBookings = bookings.filter(
+      (b: any) =>
+        b.status === 'REQUESTED' ||
+        b.status === 'CONFIRMED' ||
+        b.status === 'IN_PROGRESS',
+    ).length;
 
-      return {
-        totalBookings,
-        activeBookings,
-        completedBookings,
-        totalSpent,
-        recentBookings: bookings.slice(0, 5),
-      };
-    }
+    const completedBookings = bookings.filter(
+      (b: any) => b.status === 'COMPLETED',
+    ).length;
 
-    const resData = await res.json();
-    return resData.data || resData;
+    const totalSpent = bookings
+      .filter(
+        (b: any) => b.paymentStatus === 'PAID' || b.status === 'COMPLETED',
+      )
+      .reduce(
+        (sum: number, b: any) =>
+          sum + Number(b.service?.price || b.totalAmount || b.price || 0),
+        0,
+      );
+
+    return {
+      totalBookings,
+      activeBookings,
+      completedBookings,
+      totalSpent,
+      recentBookings: bookings.slice(0, 5),
+    };
   } catch (error) {
-    console.error('Error fetching customer summary:', error);
+    console.error('Error calculating customer summary:', error);
     return {
       totalBookings: 0,
       activeBookings: 0,
@@ -275,10 +283,19 @@ export async function getCustomerDashboardSummary() {
   }
 }
 
+// GetAllTechnicians
 export async function getAllTechnicians() {
-  const res = await fetch(`${BACKEND_URL}/api/technicians`, {
-    headers: { 'Content-Type': 'application/json' },
-    cache: 'no-store',
-  });
-  return res.json();
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/technicians`, {
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) return [];
+    const resData = await res.json();
+    return resData.data || (Array.isArray(resData) ? resData : []);
+  } catch (error) {
+    console.error('Error fetching technicians:', error);
+    return [];
+  }
 }

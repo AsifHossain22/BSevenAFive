@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -17,7 +15,6 @@ import { Badge } from '@/components/ui/badge';
 import {
   Wrench,
   Search,
-  Clock,
   User,
   Star,
   Loader2,
@@ -25,21 +22,26 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { getAllServices } from '@/service/customerService';
-
+import { IGenericApiResponse, IService } from '@/lib/types';
 export default function ServicesPage() {
-  const [loading, setLoading] = useState(true);
-  const [services, setServices] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState<boolean>(true);
+  const [services, setServices] = useState<IService[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   useEffect(() => {
     async function fetchServices() {
       try {
         setLoading(true);
-        const res = await getAllServices();
-        const dataList = Array.isArray(res)
-          ? res
-          : res?.data || res?.result || [];
-        setServices(Array.isArray(dataList) ? dataList : []);
+        const res: IGenericApiResponse<IService[]> | IService[] =
+          await getAllServices();
+
+        if (Array.isArray(res)) {
+          setServices(res);
+        } else if (res && Array.isArray(res.data)) {
+          setServices(res.data);
+        } else {
+          setServices([]);
+        }
       } catch (err) {
         console.error('Failed to load services:', err);
       } finally {
@@ -49,69 +51,22 @@ export default function ServicesPage() {
     fetchServices();
   }, []);
 
-  const getCategoryName = (service: any): string => {
-    if (!service) return 'General';
-    if (typeof service.category === 'object' && service.category !== null) {
-      return (
-        service.category.categoryName || service.category.name || 'General'
-      );
-    }
-    if (
-      typeof service.serviceCategory === 'object' &&
-      service.serviceCategory !== null
-    ) {
-      return (
-        service.serviceCategory.categoryName ||
-        service.serviceCategory.name ||
-        'General'
-      );
-    }
-    return typeof service.category === 'string'
-      ? service.category
-      : service.categoryName || 'General';
-  };
-
-  const getTechnicianName = (service: any): string => {
-    if (!service) return 'Verified Tech';
-    if (typeof service.technician === 'object' && service.technician !== null) {
-      return (
-        service.technician.name ||
-        service.technician.userName ||
-        'Verified Tech'
-      );
-    }
-    if (typeof service.user === 'object' && service.user !== null) {
-      return service.user.name || 'Verified Tech';
-    }
-    return typeof service.technician === 'string'
-      ? service.technician
-      : service.technicianName || 'Verified Tech';
-  };
-
-  const getServiceTitle = (service: any): string => {
-    if (!service) return 'Home Repair Service';
-    if (typeof service.title === 'string') return service.title;
-    if (typeof service.name === 'string') return service.name;
-    return getCategoryName(service);
-  };
-
   const filteredServices = services.filter(service => {
-    const title = getServiceTitle(service);
-    const categoryName = getCategoryName(service);
-    const description =
-      typeof service.description === 'string' ? service.description : '';
-    const matchTerm = searchTerm.toLowerCase();
+    const title = service.title || '';
+    const categoryName = service.category?.name || '';
+    const description = service.description || '';
+    const term = searchTerm.toLowerCase();
 
     return (
-      title.toLowerCase().includes(matchTerm) ||
-      categoryName.toLowerCase().includes(matchTerm) ||
-      description.toLowerCase().includes(matchTerm)
+      title.toLowerCase().includes(term) ||
+      categoryName.toLowerCase().includes(term) ||
+      description.toLowerCase().includes(term)
     );
   });
 
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Banner */}
+      {/* ServiceHeroBanner */}
       <div className="text-center space-y-4 max-w-2xl mx-auto">
         <Badge
           variant="outline"
@@ -127,7 +82,7 @@ export default function ServicesPage() {
           pricing and book your preferred time slot instantly.
         </p>
 
-        {/* SearchBar */}
+        {/* SearchInput */}
         <div className="relative max-w-md mx-auto pt-2">
           <Search className="w-4 h-4 absolute left-3 top-5 text-muted-foreground" />
           <Input
@@ -143,9 +98,7 @@ export default function ServicesPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-3 text-muted-foreground">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-          <p className="text-sm font-medium">
-            Loading available services from technicians...
-          </p>
+          <p className="text-sm font-medium">Loading available services...</p>
         </div>
       ) : filteredServices.length === 0 ? (
         <div className="text-center py-16 border rounded-xl bg-card">
@@ -153,30 +106,26 @@ export default function ServicesPage() {
           <h3 className="text-lg font-bold">No Services Found</h3>
           <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-1">
             {searchTerm
-              ? `No technician services match "${searchTerm}". Try searching for something else.`
-              : 'Technicians haven’t posted any public services yet.'}
+              ? `No services match "${searchTerm}". Try searching for something else.`
+              : 'No services are currently available.'}
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredServices.map((service: any) => {
-            const sId = service.id || service._id;
-            const price =
-              service.price || service.hourlyRate || service.amount || 0;
-            const title = getServiceTitle(service);
-            const categoryLabel = getCategoryName(service);
-            const techName = getTechnicianName(service);
-            const rating = service.rating || service.averageRating || 4.9;
+          {filteredServices.map(service => {
+            const categoryName = service.category?.name || 'General';
+            const techName = service.technician?.name || 'Verified Tech';
+            const rating = service.rating ?? 5.0;
 
             return (
               <Card
-                key={sId}
+                key={service.id}
                 className="flex flex-col hover:shadow-md transition-shadow"
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between gap-2">
                     <Badge variant="secondary" className="text-xs">
-                      {categoryLabel}
+                      {categoryName}
                     </Badge>
                     <div className="flex items-center text-xs font-semibold text-amber-500">
                       <Star className="w-3.5 h-3.5 fill-amber-500 mr-1" />
@@ -184,15 +133,18 @@ export default function ServicesPage() {
                     </div>
                   </div>
                   <CardTitle className="text-lg mt-2 line-clamp-1">
-                    {title}
+                    <Link
+                      href={`/services/${service.id}`}
+                      className="hover:text-primary transition-colors"
+                    >
+                      {service.title}
+                    </Link>
                   </CardTitle>
                 </CardHeader>
 
                 <CardContent className="flex-1 space-y-3 text-sm">
                   <p className="text-muted-foreground line-clamp-2">
-                    {typeof service.description === 'string'
-                      ? service.description
-                      : 'Professional home repair and maintenance service guaranteed by verified local experts.'}
+                    {service.description}
                   </p>
 
                   <div className="pt-2 border-t space-y-1.5 text-xs text-muted-foreground">
@@ -203,30 +155,25 @@ export default function ServicesPage() {
                         <strong className="text-foreground">{techName}</strong>
                       </span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-primary" />
-                      <span>
-                        Est. Duration: {service.duration || '1 - 2 Hours'}
-                      </span>
-                    </div>
                   </div>
                 </CardContent>
 
                 <CardFooter className="pt-3 border-t flex items-center justify-between">
                   <div>
                     <span className="text-xs text-muted-foreground block">
-                      Starting from
+                      Price
                     </span>
                     <span className="text-lg font-extrabold text-primary">
-                      ${price}
+                      ${service.price}
                     </span>
                   </div>
 
-                  <Button className="gap-1 cursor-pointer">
-                    <Link href={`/booking/${sId}`}>
-                      <span className="flex items-center gap-2">
-                        Book Now <ArrowRight className="w-3.5 h-3.5" />
-                      </span>
+                  <Button size="sm" className="gap-1 cursor-pointer">
+                    <Link
+                      href={`/booking/${service.id}`}
+                      className="flex items-center gap-1"
+                    >
+                      Book Now <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                   </Button>
                 </CardFooter>

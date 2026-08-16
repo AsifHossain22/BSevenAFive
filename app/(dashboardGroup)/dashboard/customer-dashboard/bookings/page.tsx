@@ -1,284 +1,304 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Loader2, CreditCard, Ban } from 'lucide-react';
-import { toast } from 'sonner';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import {
-  getCustomerBookings,
-  cancelBooking,
-  initiatePayment,
-} from '@/service/customerService';
+  Loader2,
+  Calendar,
+  CreditCard,
+  CheckCircle2,
+  Clock,
+  XCircle,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { cancelBooking, getCustomerBookings } from '@/service/customerService';
 
 export default function CustomerBookingsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [loading, setLoading] = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadBookings() {
-      try {
-        setLoading(true);
-        const resData = await getCustomerBookings();
+  const loadBookings = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await getCustomerBookings();
 
-        // BookingList
-        const bookingsList = Array.isArray(resData)
-          ? resData
-          : resData?.data || resData?.bookings || resData?.result || [];
-
-        setBookings(bookingsList);
-      } catch (err) {
-        toast.error('Failed to fetch bookings.');
-      } finally {
-        setLoading(false);
+      let list: any[] = [];
+      if (Array.isArray(res)) {
+        list = res;
+      } else if (Array.isArray(res?.data)) {
+        list = res.data;
+      } else if (Array.isArray(res?.data?.data)) {
+        list = res.data.data;
+      } else if (Array.isArray(res?.bookings)) {
+        list = res.bookings;
+      } else if (Array.isArray(res?.data?.bookings)) {
+        list = res.data.bookings;
+      } else if (Array.isArray(res?.result)) {
+        list = res.result;
       }
+
+      setBookings(list);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to fetch bookings.');
+    } finally {
+      setLoading(false);
     }
-    loadBookings();
   }, []);
 
-  const handleCancel = async (id: string) => {
-    setActionLoadingId(id);
-    const toastId = toast.loading('Cancelling booking...');
+  useEffect(() => {
+    loadBookings();
 
+    if (searchParams.get('payment') === 'success') {
+      toast.success('Payment completed successfully!');
+    }
+  }, [loadBookings, searchParams]);
+
+  const handleCancelBooking = async (bookingId: string) => {
     try {
-      await cancelBooking(id);
-      setBookings(prev =>
-        prev.map(b =>
-          b.id === id || b._id === id ? { ...b, status: 'CANCELLED' } : b,
-        ),
+      setCancellingId(bookingId);
+      await cancelBooking(bookingId);
+      toast.success('Booking cancelled successfully.');
+
+      setBookings(prevBookings =>
+        prevBookings.filter(b => (b.id || b._id) !== bookingId),
       );
-      toast.success('Booking cancelled successfully.', { id: toastId });
     } catch (err: any) {
-      toast.error(err.message || 'Could not cancel booking.', { id: toastId });
+      toast.error(err?.message || 'Failed to cancel booking.');
     } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const handlePayNow = async (id: string) => {
-    setActionLoadingId(id);
-    const toastId = toast.loading('Redirecting to secure gateway...');
-
-    try {
-      const res = await initiatePayment(id);
-
-      const gatewayUrl = res?.gatewayUrl || res?.data?.gatewayUrl || res?.url;
-
-      if (gatewayUrl) {
-        window.location.href = gatewayUrl;
-      } else {
-        toast.error('Payment gateway URL not received from backend.', {
-          id: toastId,
-        });
-      }
-    } catch (err: any) {
-      toast.error(err.message || 'Could not initiate payment.', {
-        id: toastId,
-      });
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PENDING':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-amber-500/10 text-amber-600 border-amber-200"
-          >
-            Pending Acceptance
-          </Badge>
-        );
-      case 'ACCEPTED':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-blue-500/10 text-blue-600 border-blue-200"
-          >
-            Accepted
-          </Badge>
-        );
-      case 'IN_PROGRESS':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-purple-500/10 text-purple-600 border-purple-200"
-          >
-            In Progress
-          </Badge>
-        );
-      case 'COMPLETED':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-green-500/10 text-green-600 border-green-200"
-          >
-            Completed
-          </Badge>
-        );
-      case 'CANCELLED':
-        return (
-          <Badge
-            variant="outline"
-            className="bg-red-500/10 text-red-600 border-red-200"
-          >
-            Cancelled
-          </Badge>
-        );
-      default:
-        return <Badge variant="outline">{status}</Badge>;
+      setCancellingId(null);
     }
   };
 
   if (loading) {
     return (
-      <Card className="p-8 flex items-center justify-center text-muted-foreground">
-        <Loader2 className="w-6 h-6 animate-spin mr-2" /> Loading your
-        bookings...
-      </Card>
+      <div className="flex flex-col items-center justify-center min-h-87.5 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground mt-2">
+          Loading your bookings...
+        </p>
+      </div>
     );
   }
 
+  const visibleBookings = bookings.filter(booking => {
+    const status = (
+      booking.status ||
+      booking.bookingStatus ||
+      ''
+    ).toUpperCase();
+    return status !== 'CANCELLED' && status !== 'DECLINED';
+  });
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">My Bookings</h1>
-        <p className="text-sm text-muted-foreground">
-          Track service status, process payments or cancel eligible requests.
-        </p>
+    <div className="space-y-6 max-w-5xl mx-auto p-4">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Bookings</h1>
+          <p className="text-sm text-muted-foreground">
+            View active bookings and complete payments for confirmed services.
+          </p>
+        </div>
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Booking ID</TableHead>
-                <TableHead>Service</TableHead>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {bookings.length === 0 ? (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    You have not made any service bookings yet.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                bookings.map(b => {
-                  const bId = b.id || b._id;
-                  const isActioning = actionLoadingId === bId;
-                  const isUnpaid = b.paymentStatus !== 'PAID';
-                  const canPay =
-                    isUnpaid &&
-                    (b.status === 'ACCEPTED' || b.status === 'PENDING');
+      {visibleBookings.length === 0 ? (
+        <Card className="p-12 text-center">
+          <Clock className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold">No Bookings Found</h3>
+          <p className="text-sm text-muted-foreground mt-1">
+            You haven&apos;t placed any active bookings yet.
+          </p>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {visibleBookings.map(booking => {
+            const id = booking.id || booking._id;
+            const status = (
+              booking.status ||
+              booking.bookingStatus ||
+              ''
+            ).toUpperCase();
 
-                  return (
-                    <TableRow key={bId}>
-                      <TableCell className="font-bold text-xs font-mono">
-                        {bId}
-                      </TableCell>
-                      <TableCell>
-                        {b.service?.title ||
-                          b.service?.name ||
-                          b.serviceCategory?.categoryName ||
-                          b.serviceTitle ||
-                          'Home Service'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-xs">
-                          <p className="font-medium">
-                            {b.bookingDate
-                              ? new Date(b.bookingDate).toLocaleDateString()
-                              : 'N/A'}
-                          </p>
-                          <p className="text-muted-foreground">
-                            {b.timeSlot
-                              ? new Date(b.timeSlot).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                              : ''}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-bold text-primary">
-                        $
-                        {b.totalAmount ||
-                          b.price ||
-                          b.amount ||
-                          b.service?.price ||
-                          0}
-                      </TableCell>
-                      <TableCell>{getStatusBadge(b.status)}</TableCell>
-                      <TableCell className="text-right">
-                        {isActioning ? (
-                          <Loader2 className="w-4 h-4 animate-spin ml-auto" />
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            {/* PayNowButton */}
-                            {canPay && (
-                              <Button
-                                size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 h-8 gap-1 cursor-pointer"
-                                onClick={() => handlePayNow(bId)}
-                              >
-                                <CreditCard className="w-3.5 h-3.5" /> Pay Now
-                              </Button>
-                            )}
+            const isPending = status === 'REQUESTED' || status === 'PENDING';
+            const isAccepted = status === 'ACCEPTED' || status === 'CONFIRMED';
+            const isCompleted = status === 'COMPLETED';
+            const isPaid =
+              status === 'PAID' ||
+              booking.paymentStatus === 'PAID' ||
+              isCompleted;
 
-                            {/* CancelButton */}
-                            {(b.status === 'PENDING' ||
-                              b.status === 'ACCEPTED') && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-destructive border-destructive/30 hover:bg-destructive/10 h-8 gap-1 cursor-pointer"
-                                onClick={() => handleCancel(bId)}
-                              >
-                                <Ban className="w-3.5 h-3.5" /> Cancel
-                              </Button>
-                            )}
+            const price =
+              booking.service?.price ??
+              booking.totalAmount ??
+              booking.price ??
+              booking.amount ??
+              0;
 
-                            {b.paymentStatus === 'PAID' && (
-                              <Badge
-                                variant="outline"
-                                className="bg-emerald-500/10 text-emerald-600 border-emerald-200"
-                              >
-                                Paid
-                              </Badge>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
+            const dateValue = booking.timeSlot || booking.bookingDate;
+            const formattedDate = dateValue
+              ? new Date(dateValue).toLocaleDateString('en-US', {
+                  dateStyle: 'medium',
                 })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              : 'Scheduled';
+
+            return (
+              <Card
+                key={id}
+                className="border shadow-sm flex flex-col justify-between"
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start gap-2">
+                    <CardTitle className="text-base font-semibold">
+                      {booking.service?.title ||
+                        booking.serviceName ||
+                        'Requested Service'}
+                    </CardTitle>
+
+                    {isPending && (
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-500/10 text-amber-600 border-amber-300"
+                      >
+                        Pending Acceptance
+                      </Badge>
+                    )}
+                    {isAccepted && !isPaid && (
+                      <Badge
+                        variant="outline"
+                        className="bg-emerald-500/10 text-emerald-600 border-emerald-300"
+                      >
+                        Accepted
+                      </Badge>
+                    )}
+                    {isPaid && (
+                      <Badge
+                        variant="outline"
+                        className="bg-blue-500/10 text-blue-600 border-blue-300"
+                      >
+                        Paid
+                      </Badge>
+                    )}
+                  </div>
+                </CardHeader>
+
+                <CardContent className="space-y-2 text-xs text-muted-foreground py-2">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3.5 h-3.5 text-foreground" />
+                    <span>Date: {formattedDate}</span>
+                  </div>
+                  <div className="pt-2 font-bold text-sm text-primary">
+                    Amount: ${price}
+                  </div>
+                </CardContent>
+
+                <CardFooter className="pt-3 border-t flex flex-col gap-2">
+                  {isPending && (
+                    <div className="w-full space-y-2 text-center">
+                      <p className="text-xs text-amber-600 italic">
+                        Waiting for technician approval...
+                      </p>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 gap-1.5 h-8 text-xs cursor-pointer"
+                            disabled={cancellingId === id}
+                          >
+                            {cancellingId === id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <XCircle className="w-3.5 h-3.5" />
+                            )}
+                            Cancel Request
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>
+                              Are you sure you want to cancel?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will
+                              permanently cancel your booking request for{' '}
+                              <strong>
+                                {booking.service?.title ||
+                                  booking.serviceName ||
+                                  'this service'}
+                              </strong>
+                              .
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="cursor-pointer">
+                              Keep Booking
+                            </AlertDialogCancel>
+                            <AlertDialogAction
+                              className="bg-red-600 hover:bg-red-700 text-white cursor-pointer"
+                              onClick={() => handleCancelBooking(id)}
+                            >
+                              Yes, Cancel Booking
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
+                  )}
+
+                  {/* AcceptedState */}
+                  {isAccepted && !isPaid && (
+                    <Button
+                      size="sm"
+                      className="w-full bg-primary text-white gap-2 cursor-pointer"
+                      onClick={() =>
+                        router.push(
+                          `/dashboard/customer-dashboard/checkout/${id}`,
+                        )
+                      }
+                    >
+                      <CreditCard className="w-4 h-4" />
+                      Pay Now
+                    </Button>
+                  )}
+
+                  {/* PaidState */}
+                  {isPaid && (
+                    <div className="flex items-center justify-center gap-1 text-emerald-600 text-xs w-full font-medium">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Payment Completed
+                    </div>
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
