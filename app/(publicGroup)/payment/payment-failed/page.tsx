@@ -38,7 +38,7 @@ export default function PaymentFailedPage() {
         {/* NavigationActions */}
         <div className="space-y-3 pt-2">
           <Link
-            href="/dashboard/bookings"
+            href="/dashboard/customer-dashboard/bookings"
             className="w-full inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-6 rounded-xl shadow-md transition-all duration-200"
           >
             <RefreshCw className="w-4 h-4" />
