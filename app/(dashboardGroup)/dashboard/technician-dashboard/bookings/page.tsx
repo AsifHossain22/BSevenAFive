@@ -15,6 +15,8 @@ import {
   DollarSign,
   PlayCircle,
   CheckCircle2,
+  XCircle,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -25,7 +27,8 @@ import {
 export default function TechnicianBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const [updatingAction, setUpdatingAction] = useState<string | null>(null);
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -58,7 +61,10 @@ export default function TechnicianBookingsPage() {
   }, [fetchBookings]);
 
   const handleStatusChange = async (id: string, newStatus: string) => {
-    setUpdatingId(id);
+    // UniqueKeyPerButtonClick
+    const actionKey = `${id}_${newStatus}`;
+    setUpdatingAction(actionKey);
+
     const toastId = toast.loading(
       `Updating status to ${newStatus.replace('_', ' ')}...`,
     );
@@ -70,26 +76,30 @@ export default function TechnicianBookingsPage() {
         { id: toastId },
       );
 
-      // UpdateState
-      setBookings(prev =>
-        prev.map(item => {
-          const itemId = item.id || item._id;
-          if (itemId === id) {
-            return {
-              ...item,
-              status: newStatus,
-              bookingStatus: newStatus,
-            };
-          }
-          return item;
-        }),
-      );
+      // RemoveCardIfDeclinedOrRejected
+      if (newStatus === 'DECLINED' || newStatus === 'REJECTED') {
+        setBookings(prev => prev.filter(item => (item.id || item._id) !== id));
+      } else {
+        setBookings(prev =>
+          prev.map(item => {
+            const itemId = item.id || item._id;
+            if (itemId === id) {
+              return {
+                ...item,
+                status: newStatus,
+                bookingStatus: newStatus,
+              };
+            }
+            return item;
+          }),
+        );
+      }
     } catch (err: any) {
       toast.error(err.message || 'Failed to update booking status.', {
         id: toastId,
       });
     } finally {
-      setUpdatingId(null);
+      setUpdatingAction(null);
     }
   };
 
@@ -109,7 +119,8 @@ export default function TechnicianBookingsPage() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Assigned Jobs</h1>
         <p className="text-sm text-muted-foreground">
-          Manage job progression from paid bookings to execution and completion.
+          Manage job progression from pending requests to execution and
+          completion.
         </p>
       </div>
 
@@ -128,12 +139,18 @@ export default function TechnicianBookingsPage() {
             const rawStatus = req.status || req.bookingStatus || '';
             const status = rawStatus.toUpperCase();
 
+            // CheckBookingStatus
+            const isPending = status === 'REQUESTED' || status === 'PENDING';
+            const isAccepted = status === 'ACCEPTED';
             const isPaid = status === 'PAID' || status === 'CONFIRMED';
             const isInProgress = status === 'IN_PROGRESS';
             const isCompleted = status === 'COMPLETED';
-            const isAccepted = status === 'ACCEPTED';
+            const isCancelled =
+              status === 'CANCELLED' ||
+              status === 'DECLINED' ||
+              status === 'REJECTED';
 
-            const isUpdating = updatingId === id;
+            const isCardUpdating = updatingAction?.startsWith(`${id}_`);
 
             const serviceTitle =
               req.service?.title ||
@@ -180,6 +197,15 @@ export default function TechnicianBookingsPage() {
                           {serviceTitle}
                         </h3>
 
+                        {/* StatusBadges */}
+                        {isPending && (
+                          <Badge
+                            variant="outline"
+                            className="bg-purple-500/10 text-purple-600 border-purple-300 font-medium"
+                          >
+                            New Request
+                          </Badge>
+                        )}
                         {isAccepted && (
                           <Badge
                             variant="outline"
@@ -210,6 +236,14 @@ export default function TechnicianBookingsPage() {
                             className="bg-emerald-500/10 text-emerald-600 border-emerald-300 font-medium"
                           >
                             Completed
+                          </Badge>
+                        )}
+                        {isCancelled && (
+                          <Badge
+                            variant="outline"
+                            className="bg-rose-500/10 text-rose-600 border-rose-300 font-medium"
+                          >
+                            Cancelled / Declined
                           </Badge>
                         )}
                       </div>
@@ -253,14 +287,48 @@ export default function TechnicianBookingsPage() {
 
                   {/* StatusProgressionControls */}
                   <div className="pt-4 border-t border-border/50 flex flex-wrap items-center justify-end gap-3">
+                    {/* IsPendingActionButton */}
+                    {isPending && (
+                      <>
+                        <Button
+                          size="default"
+                          variant="outline"
+                          className="cursor-pointer w-full sm:w-auto border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 gap-2 font-semibold"
+                          disabled={isCardUpdating}
+                          onClick={() => handleStatusChange(id, 'DECLINED')}
+                        >
+                          {updatingAction === `${id}_DECLINED` ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <XCircle className="w-4 h-4" />
+                          )}
+                          Reject
+                        </Button>
+                        <Button
+                          size="default"
+                          className="cursor-pointer w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white gap-2 font-semibold"
+                          disabled={isCardUpdating}
+                          onClick={() => handleStatusChange(id, 'ACCEPTED')}
+                        >
+                          {updatingAction === `${id}_ACCEPTED` ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                          Accept Job
+                        </Button>
+                      </>
+                    )}
+
+                    {/* IsPaidActionButton */}
                     {isPaid && (
                       <Button
                         size="default"
                         className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white gap-2 cursor-pointer font-semibold"
-                        disabled={isUpdating}
+                        disabled={isCardUpdating}
                         onClick={() => handleStatusChange(id, 'IN_PROGRESS')}
                       >
-                        {isUpdating ? (
+                        {updatingAction === `${id}_IN_PROGRESS` ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <PlayCircle className="w-4 h-4" />
@@ -269,14 +337,15 @@ export default function TechnicianBookingsPage() {
                       </Button>
                     )}
 
+                    {/* InProgressActionButton */}
                     {isInProgress && (
                       <Button
                         size="default"
                         className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white gap-2 cursor-pointer font-semibold"
-                        disabled={isUpdating}
+                        disabled={isCardUpdating}
                         onClick={() => handleStatusChange(id, 'COMPLETED')}
                       >
-                        {isUpdating ? (
+                        {updatingAction === `${id}_COMPLETED` ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : (
                           <CheckCircle2 className="w-4 h-4" />

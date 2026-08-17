@@ -11,6 +11,8 @@ import {
   CreditCard,
   Loader2,
   CheckCircle2,
+  XCircle,
+  User,
 } from 'lucide-react';
 
 export interface Booking {
@@ -20,10 +22,16 @@ export interface Booking {
     price: number;
     category?: { categoryName: string };
   };
+  customer?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
   timeSlot: string;
   status:
     | 'REQUESTED'
     | 'ACCEPTED'
+    | 'REJECTED'
     | 'PAID'
     | 'CONFIRMED'
     | 'COMPLETED'
@@ -34,12 +42,20 @@ export interface Booking {
 
 interface BookingCardProps {
   booking: Booking;
+  role?: 'CUSTOMER' | 'TECHNICIAN';
   onCancel?: (id: string) => void;
+  onAccept?: (id: string) => Promise<void> | void;
+  onReject?: (id: string) => Promise<void> | void;
+  onComplete?: (id: string) => Promise<void> | void;
 }
 
 export const BookingCard: React.FC<BookingCardProps> = ({
   booking,
+  role = 'CUSTOMER',
   onCancel,
+  onAccept,
+  onReject,
+  onComplete,
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -58,7 +74,10 @@ export const BookingCard: React.FC<BookingCardProps> = ({
   const handlePayNow = async () => {
     try {
       setLoading(true);
-      const BACKEND_URL = `${process.env.BACKEND_API_URL}`.replace(/\/$/, '');
+      const BACKEND_URL = `${process.env.BACKEND_API_URL || ''}`.replace(
+        /\/$/,
+        '',
+      );
 
       const res = await fetch(`${BACKEND_URL}/payments/create`, {
         method: 'POST',
@@ -84,24 +103,34 @@ export const BookingCard: React.FC<BookingCardProps> = ({
     }
   };
 
+  const handleAction = async (
+    actionFn?: (id: string) => Promise<void> | void,
+  ) => {
+    if (!actionFn) return;
+    try {
+      setLoading(true);
+      await actionFn(booking.id);
+    } catch (error) {
+      console.error('Action error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const getStatusBadge = (status: Booking['status']) => {
     switch (status) {
       case 'PAID':
+      case 'CONFIRMED':
         return (
           <span className="badge badge-paid">
-            <CheckCircle2 size={14} /> Paid
+            <CheckCircle2 size={14} />{' '}
+            {status === 'PAID' ? 'Paid' : 'Confirmed'}
           </span>
         );
       case 'ACCEPTED':
         return (
           <span className="badge badge-accepted">
-            <CreditCard size={14} /> Accepted
-          </span>
-        );
-      case 'CONFIRMED':
-        return (
-          <span className="badge badge-confirmed">
-            <CheckCircle size={14} /> Confirmed
+            <CheckCircle size={14} /> Accepted
           </span>
         );
       case 'REQUESTED':
@@ -110,10 +139,18 @@ export const BookingCard: React.FC<BookingCardProps> = ({
             <Clock3 size={14} /> Pending
           </span>
         );
+      case 'COMPLETED':
+        return (
+          <span className="badge badge-completed">
+            <CheckCircle2 size={14} /> Completed
+          </span>
+        );
+      case 'REJECTED':
       case 'CANCELLED':
         return (
           <span className="badge badge-cancelled">
-            <AlertCircle size={14} /> Cancelled
+            <AlertCircle size={14} />{' '}
+            {status === 'REJECTED' ? 'Rejected' : 'Cancelled'}
           </span>
         );
       default:
@@ -134,6 +171,12 @@ export const BookingCard: React.FC<BookingCardProps> = ({
       </div>
 
       <div className="booking-card-body">
+        {role === 'TECHNICIAN' && booking.customer?.name && (
+          <div className="info-row">
+            <User size={16} />
+            <span>Customer: {booking.customer.name}</span>
+          </div>
+        )}
         <div className="info-row">
           <Calendar size={16} />
           <span>{formattedDate}</span>
@@ -158,31 +201,121 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 
         {/* ActionButtons */}
         <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
-          {booking.status === 'ACCEPTED' && (
-            <button
-              className="btn-pay"
-              onClick={handlePayNow}
-              disabled={loading}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading ? (
-                <Loader2 className="animate-spin" size={16} />
-              ) : (
-                <CreditCard size={16} />
+          {/* CustomerRoleAction */}
+          {role === 'CUSTOMER' && (
+            <>
+              {booking.status === 'ACCEPTED' && (
+                <button
+                  formTarget="_blank"
+                  className="btn-pay"
+                  onClick={handlePayNow}
+                  disabled={loading}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {loading ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    <CreditCard size={16} />
+                  )}
+                  {loading ? 'Processing...' : 'Pay Now'}
+                </button>
               )}
-              {loading ? 'Processing...' : 'Pay Now'}
-            </button>
+
+              {booking.status === 'REQUESTED' && onCancel && (
+                <button
+                  className="btn-cancel"
+                  onClick={() => handleAction(onCancel)}
+                  disabled={loading}
+                >
+                  Cancel Booking
+                </button>
+              )}
+            </>
           )}
 
-          {booking.status === 'REQUESTED' && onCancel && (
-            <button className="btn-cancel" onClick={() => onCancel(booking.id)}>
-              Cancel Booking
-            </button>
+          {/* TechnicianRoleAction */}
+          {role === 'TECHNICIAN' && (
+            <>
+              {booking.status === 'REQUESTED' && (
+                <>
+                  {onAccept && (
+                    <button
+                      className="btn-accept"
+                      onClick={() => handleAction(onAccept)}
+                      disabled={loading}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: 'var(--color-success, #16a34a)',
+                        color: '#fff',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {loading ? (
+                        <Loader2 className="animate-spin" size={16} />
+                      ) : (
+                        <CheckCircle size={16} />
+                      )}
+                      Accept
+                    </button>
+                  )}
+
+                  {onReject && (
+                    <button
+                      className="btn-reject"
+                      onClick={() => handleAction(onReject)}
+                      disabled={loading}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: 'var(--color-danger, #dc2626)',
+                        color: '#fff',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      <XCircle size={16} />
+                      Reject
+                    </button>
+                  )}
+                </>
+              )}
+
+              {(booking.status === 'CONFIRMED' || booking.status === 'PAID') &&
+                onComplete && (
+                  <button
+                    className="btn-complete"
+                    onClick={() => handleAction(onComplete)}
+                    disabled={loading}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      backgroundColor: 'var(--color-primary, #2563eb)',
+                      color: '#fff',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      cursor: loading ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    Mark Completed
+                  </button>
+                )}
+            </>
           )}
         </div>
       </div>
