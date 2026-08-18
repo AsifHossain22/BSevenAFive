@@ -1,33 +1,10 @@
 import type { Metadata } from 'next';
-import {
-  Geist,
-  Geist_Mono,
-  Noto_Serif,
-  JetBrains_Mono,
-} from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { Toaster } from 'sonner';
 import { getUser } from '@/service/getUser';
 import { Navbar } from '@/components/shared/Navbar';
 import { Footer } from '@/components/shared/Footer';
-
-const jetbrainsMonoHeading = JetBrains_Mono({
-  subsets: ['latin'],
-  variable: '--font-heading',
-});
-
-const notoSerif = Noto_Serif({ subsets: ['latin'], variable: '--font-serif' });
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 export const metadata: Metadata = {
   title: 'Fix It Now - NextApp',
@@ -40,17 +17,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getUser();
+
   return (
-    <html
-      lang="en"
-      className={cn(
-        'h-full',
-        'antialiased',
-        'font-serif',
-        notoSerif.variable,
-        jetbrainsMonoHeading.variable,
-      )}
-    >
+    <html lang="en" className={cn('h-full', 'antialiased', 'font-serif')}>
       <body>
         {/* Navbar */}
         <Navbar user={user} />

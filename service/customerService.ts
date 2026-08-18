@@ -9,6 +9,7 @@ const BACKEND_URL = `${process.env.BACKEND_API_URL}`.replace(/\/$/, '');
 // AuthHeaders
 async function getAuthHeaders() {
   const cookieStore = await cookies();
+
   const token =
     cookieStore.get('accessToken')?.value || cookieStore.get('token')?.value;
 
@@ -27,8 +28,14 @@ export async function getAllServices(query?: {
 }) {
   try {
     const searchParams = new URLSearchParams();
-    if (query?.category) searchParams.append('category', query.category);
-    if (query?.search) searchParams.append('search', query.search);
+
+    if (query?.category) {
+      searchParams.append('category', query.category);
+    }
+
+    if (query?.search) {
+      searchParams.append('search', query.search);
+    }
 
     const res = await fetch(
       `${BACKEND_URL}/api/services?${searchParams.toString()}`,
@@ -42,20 +49,27 @@ export async function getAllServices(query?: {
       console.warn(
         `Primary service fetch failed with status ${res.status}. Trying fallback.`,
       );
+
       const fallbackRes = await fetch(
         `${BACKEND_URL}/api/technician/services`,
         {
           cache: 'no-store',
         },
       );
-      if (!fallbackRes.ok) return [];
+
+      if (!fallbackRes.ok) {
+        return [];
+      }
+
       const fallbackData = await fallbackRes.json();
+
       return (
         fallbackData.data || (Array.isArray(fallbackData) ? fallbackData : [])
       );
     }
 
     const resData = await res.json();
+
     return resData.data || (Array.isArray(resData) ? resData : []);
   } catch (error) {
     console.error('Error fetching public services:', error);
@@ -79,12 +93,17 @@ export async function getServiceById(id: string) {
         },
       );
 
-      if (!fallbackRes.ok) return null;
+      if (!fallbackRes.ok) {
+        return null;
+      }
+
       const fallbackData = await fallbackRes.json();
+
       return fallbackData.data || fallbackData;
     }
 
     const resData = await res.json();
+
     return resData.data || resData;
   } catch (error) {
     console.error(`Error fetching service with ID ${id}:`, error);
@@ -114,12 +133,25 @@ export async function getCustomerBookings() {
 
     const resData = await res.json();
 
-    if (Array.isArray(resData)) return resData;
-    if (Array.isArray(resData?.data)) return resData.data;
-    if (Array.isArray(resData?.data?.bookings)) return resData.data.bookings;
-    if (Array.isArray(resData?.bookings)) return resData.bookings;
-    if (Array.isArray(resData?.result)) return resData.result;
+    if (Array.isArray(resData)) {
+      return resData;
+    }
 
+    if (Array.isArray(resData?.data)) {
+      return resData.data;
+    }
+
+    if (Array.isArray(resData?.data?.bookings)) {
+      return resData.data.bookings;
+    }
+
+    if (Array.isArray(resData?.bookings)) {
+      return resData.bookings;
+    }
+
+    if (Array.isArray(resData?.result)) {
+      return resData.result;
+    }
     return [];
   } catch (error) {
     console.error('Error fetching customer bookings:', error);
@@ -138,6 +170,7 @@ export async function createBooking(payload: {
 }) {
   try {
     const headers = await getAuthHeaders();
+
     const res = await fetch(`${BACKEND_URL}/api/bookings`, {
       method: 'POST',
       headers,
@@ -145,6 +178,7 @@ export async function createBooking(payload: {
     });
 
     const data = await res.json();
+
     if (!res.ok) {
       throw new Error(data.message || 'Failed to place booking request.');
     }
@@ -172,6 +206,7 @@ export async function cancelBooking(bookingId: string) {
     });
 
     const data = await res.json();
+
     if (!res.ok) {
       throw new Error(data.message || 'Failed to cancel booking.');
     }
@@ -180,6 +215,7 @@ export async function cancelBooking(bookingId: string) {
     revalidatePath('/dashboard/customer-dashboard');
     revalidatePath('/dashboard/customer-dashboard/bookings');
     revalidatePath('/dashboard/technician-dashboard/bookings');
+
     return data;
   } catch (error: any) {
     console.error('Error cancelling booking:', error);
@@ -191,17 +227,24 @@ export async function cancelBooking(bookingId: string) {
 export async function initiatePayment(bookingId: string) {
   try {
     const headers = await getAuthHeaders();
+
+    if (!bookingId) {
+      throw new Error('Booking ID is required.');
+    }
+
     const res = await fetch(`${BACKEND_URL}/api/payments/create`, {
       method: 'POST',
       headers,
-      body: JSON.stringify({ bookingId }),
+      body: JSON.stringify({
+        bookingId,
+      }),
     });
 
     const data = await res.json();
+
     if (!res.ok) {
       throw new Error(data.message || 'Failed to initiate payment gateway.');
     }
-
     return data;
   } catch (error: any) {
     console.error('Error initiating payment:', error);
@@ -217,6 +260,7 @@ export async function submitReview(payload: {
 }) {
   try {
     const headers = await getAuthHeaders();
+
     const res = await fetch(`${BACKEND_URL}/api/reviews`, {
       method: 'POST',
       headers,
@@ -224,11 +268,13 @@ export async function submitReview(payload: {
     });
 
     const data = await res.json();
+
     if (!res.ok) {
       throw new Error(data.message || 'Failed to submit review.');
     }
 
     revalidatePath('/dashboard/customer-dashboard/reviews');
+
     return data;
   } catch (error: any) {
     console.error('Error submitting review:', error);
@@ -246,6 +292,7 @@ export async function getCustomerDashboardSummary() {
     const activeBookings = bookings.filter(
       (b: any) =>
         b.status === 'REQUESTED' ||
+        b.status === 'ACCEPTED' ||
         b.status === 'CONFIRMED' ||
         b.status === 'IN_PROGRESS',
     ).length;
@@ -256,14 +303,16 @@ export async function getCustomerDashboardSummary() {
 
     const totalSpent = bookings
       .filter(
-        (b: any) => b.paymentStatus === 'PAID' || b.status === 'COMPLETED',
+        (b: any) =>
+          b.paymentStatus === 'PAID' ||
+          b.status === 'PAID' ||
+          b.status === 'COMPLETED',
       )
       .reduce(
         (sum: number, b: any) =>
           sum + Number(b.service?.price || b.totalAmount || b.price || 0),
         0,
       );
-
     return {
       totalBookings,
       activeBookings,
@@ -287,12 +336,18 @@ export async function getCustomerDashboardSummary() {
 export async function getAllTechnicians() {
   try {
     const res = await fetch(`${BACKEND_URL}/api/technicians`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       cache: 'no-store',
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      return [];
+    }
+
     const resData = await res.json();
+
     return resData.data || (Array.isArray(resData) ? resData : []);
   } catch (error) {
     console.error('Error fetching technicians:', error);

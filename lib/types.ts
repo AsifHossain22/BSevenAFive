@@ -18,7 +18,7 @@ export type IBookingStatus =
   | 'CANCELLED';
 
 // PaymentStatus
-export type IPaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
+export type IPaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 
 // Profile
 export type IProfile = {

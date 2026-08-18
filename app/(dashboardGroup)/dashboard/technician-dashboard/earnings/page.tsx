@@ -10,7 +10,7 @@ async function getEarningsHistory(): Promise<IPayment[]> {
       id: 'PAY-501',
       bookingId: 'JOB-2002',
       amount: 800,
-      status: 'PAID',
+      status: 'COMPLETED',
       transactionId: 'TXN-992014',
       paymentMethod: 'bKash',
       createdAt: '2026-08-02',

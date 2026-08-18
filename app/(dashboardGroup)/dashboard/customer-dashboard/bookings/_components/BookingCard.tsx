@@ -15,12 +15,17 @@ import {
   User,
 } from 'lucide-react';
 
+import { initiatePayment } from '@/service/customerService';
+
 export interface Booking {
   id: string;
   service: {
     title: string;
     price: number;
-    category?: { categoryName: string };
+    category?: {
+      categoryName?: string;
+      name?: string;
+    };
   };
   customer?: {
     name?: string;
@@ -32,8 +37,10 @@ export interface Booking {
     | 'REQUESTED'
     | 'ACCEPTED'
     | 'REJECTED'
+    | 'DECLINED'
     | 'PAID'
     | 'CONFIRMED'
+    | 'IN_PROGRESS'
     | 'COMPLETED'
     | 'CANCELLED';
   address?: string;
@@ -43,6 +50,7 @@ export interface Booking {
 interface BookingCardProps {
   booking: Booking;
   role?: 'CUSTOMER' | 'TECHNICIAN';
+
   onCancel?: (id: string) => void;
   onAccept?: (id: string) => Promise<void> | void;
   onReject?: (id: string) => Promise<void> | void;
@@ -71,44 +79,46 @@ export const BookingCard: React.FC<BookingCardProps> = ({
     minute: '2-digit',
   });
 
+  // StripePayment
   const handlePayNow = async () => {
     try {
       setLoading(true);
-      const BACKEND_URL = `${process.env.BACKEND_API_URL || ''}`.replace(
-        /\/$/,
-        '',
-      );
 
-      const res = await fetch(`${BACKEND_URL}/payments/create`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ bookingId: booking.id }),
-      });
+      const result = await initiatePayment(booking.id);
 
-      const data = await res.json();
+      const paymentUrl = result?.data?.paymentUrl;
 
-      if (data?.success && data?.data?.paymentUrl) {
-        window.location.href = data.data.paymentUrl;
-      } else {
-        alert(data?.message || 'Failed to initialize payment session.');
+      if (!paymentUrl) {
+        throw new Error(
+          result?.message || 'Stripe payment URL was not returned.',
+        );
       }
+
+      // RedirectCustomerToStripe
+      window.location.href = paymentUrl;
     } catch (error) {
       console.error('Payment initialization error:', error);
-      alert('An error occurred while redirecting to Stripe payment.');
-    } finally {
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Failed to initialize Stripe payment.',
+      );
       setLoading(false);
     }
   };
 
+  // BookingAction
   const handleAction = async (
     actionFn?: (id: string) => Promise<void> | void,
   ) => {
-    if (!actionFn) return;
+    if (!actionFn) {
+      return;
+    }
+
     try {
       setLoading(true);
+
       await actionFn(booking.id);
     } catch (error) {
       console.error('Action error:', error);
@@ -117,42 +127,60 @@ export const BookingCard: React.FC<BookingCardProps> = ({
     }
   };
 
+  // StatusBadge
   const getStatusBadge = (status: Booking['status']) => {
     switch (status) {
       case 'PAID':
       case 'CONFIRMED':
         return (
           <span className="badge badge-paid">
-            <CheckCircle2 size={14} />{' '}
+            <CheckCircle2 size={14} />
+
             {status === 'PAID' ? 'Paid' : 'Confirmed'}
           </span>
         );
       case 'ACCEPTED':
         return (
           <span className="badge badge-accepted">
-            <CheckCircle size={14} /> Accepted
+            <CheckCircle size={14} />
+            Accepted
           </span>
         );
       case 'REQUESTED':
         return (
           <span className="badge badge-pending">
-            <Clock3 size={14} /> Pending
+            <Clock3 size={14} />
+            Pending
           </span>
         );
+      case 'IN_PROGRESS':
+        return (
+          <span className="badge badge-accepted">
+            <Clock3 size={14} />
+            In Progress
+          </span>
+        );
+
       case 'COMPLETED':
         return (
           <span className="badge badge-completed">
-            <CheckCircle2 size={14} /> Completed
+            <CheckCircle2 size={14} />
+            Completed
           </span>
         );
       case 'REJECTED':
+      case 'DECLINED':
       case 'CANCELLED':
         return (
           <span className="badge badge-cancelled">
-            <AlertCircle size={14} />{' '}
-            {status === 'REJECTED' ? 'Rejected' : 'Cancelled'}
+            <AlertCircle size={14} />
+
+            {status === 'REJECTED' || status === 'DECLINED'
+              ? 'Rejected'
+              : 'Cancelled'}
           </span>
         );
+
       default:
         return <span className="badge">{status}</span>;
     }
@@ -160,16 +188,21 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 
   return (
     <div className="booking-card">
+      {/* Header */}
       <div className="booking-card-header">
         <div>
           <span className="booking-category">
-            {booking.service.category?.categoryName || 'Service'}
+            {booking.service.category?.categoryName ||
+              booking.service.category?.name ||
+              'Service'}
           </span>
           <h3 className="booking-title">{booking.service.title}</h3>
         </div>
+
         {getStatusBadge(booking.status)}
       </div>
 
+      {/* Body */}
       <div className="booking-card-body">
         {role === 'TECHNICIAN' && booking.customer?.name && (
           <div className="info-row">
@@ -177,14 +210,17 @@ export const BookingCard: React.FC<BookingCardProps> = ({
             <span>Customer: {booking.customer.name}</span>
           </div>
         )}
+
         <div className="info-row">
           <Calendar size={16} />
           <span>{formattedDate}</span>
         </div>
+
         <div className="info-row">
           <Clock size={16} />
           <span>{formattedTime}</span>
         </div>
+
         {booking.address && (
           <div className="info-row">
             <MapPin size={16} />
@@ -193,20 +229,29 @@ export const BookingCard: React.FC<BookingCardProps> = ({
         )}
       </div>
 
+      {/* Footer */}
       <div className="booking-card-footer">
         <div className="price-tag">
           <span className="price-label">Total Amount:</span>
+
           <span className="price-value">${booking.service.price}</span>
         </div>
 
-        {/* ActionButtons */}
-        <div className="card-actions" style={{ display: 'flex', gap: '8px' }}>
-          {/* CustomerRoleAction */}
+        {/* Actions */}
+        <div
+          className="card-actions"
+          style={{
+            display: 'flex',
+            gap: '8px',
+          }}
+        >
+          {/* Customer */}
           {role === 'CUSTOMER' && (
             <>
+              {/* PayNow */}
               {booking.status === 'ACCEPTED' && (
                 <button
-                  formTarget="_blank"
+                  type="button"
                   className="btn-pay"
                   onClick={handlePayNow}
                   disabled={loading}
@@ -222,13 +267,16 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                   ) : (
                     <CreditCard size={16} />
                   )}
+
                   {loading ? 'Processing...' : 'Pay Now'}
                 </button>
               )}
 
+              {/* Cancel */}
               {booking.status === 'REQUESTED' && onCancel && (
                 <button
-                  className="btn-cancel"
+                  type="button"
+                  className="btn-cancel cursor-pointer"
                   onClick={() => handleAction(onCancel)}
                   disabled={loading}
                 >
@@ -238,13 +286,15 @@ export const BookingCard: React.FC<BookingCardProps> = ({
             </>
           )}
 
-          {/* TechnicianRoleAction */}
+          {/* Technician */}
           {role === 'TECHNICIAN' && (
             <>
+              {/* AcceptOrReject */}
               {booking.status === 'REQUESTED' && (
                 <>
                   {onAccept && (
                     <button
+                      type="button"
                       className="btn-accept"
                       onClick={() => handleAction(onAccept)}
                       disabled={loading}
@@ -271,6 +321,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 
                   {onReject && (
                     <button
+                      type="button"
                       className="btn-reject"
                       onClick={() => handleAction(onReject)}
                       disabled={loading}
@@ -293,9 +344,13 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                 </>
               )}
 
-              {(booking.status === 'CONFIRMED' || booking.status === 'PAID') &&
+              {/* Complete */}
+              {(booking.status === 'CONFIRMED' ||
+                booking.status === 'PAID' ||
+                booking.status === 'IN_PROGRESS') &&
                 onComplete && (
                   <button
+                    type="button"
                     className="btn-complete"
                     onClick={() => handleAction(onComplete)}
                     disabled={loading}
@@ -311,7 +366,11 @@ export const BookingCard: React.FC<BookingCardProps> = ({
                       cursor: loading ? 'not-allowed' : 'pointer',
                     }}
                   >
-                    <CheckCircle2 size={16} />
+                    {loading ? (
+                      <Loader2 className="animate-spin" size={16} />
+                    ) : (
+                      <CheckCircle2 size={16} />
+                    )}
                     Mark Completed
                   </button>
                 )}

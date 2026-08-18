@@ -1,59 +1,83 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { XCircle, RefreshCw, HelpCircle, ArrowLeft } from 'lucide-react';
+import { Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { XCircle, CreditCard, ArrowLeft, Loader2 } from 'lucide-react';
 
-export default function PaymentFailedPage() {
+function PaymentFailedContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const bookingId = searchParams.get('bookingId');
+
+  const handleTryAgain = () => {
+    router.replace('/dashboard/customer-dashboard/bookings');
+  };
+
   return (
-    <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-white border border-gray-100 rounded-2xl shadow-xl p-8 text-center space-y-6">
+    <div className="min-h-[70vh] flex items-center justify-center px-4">
+      <div className="w-full max-w-md text-center space-y-6">
         {/* FailedIcon */}
-        <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto ring-8 ring-red-50/50">
-          <XCircle className="w-12 h-12" />
+        <div className="flex justify-center">
+          <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <XCircle className="w-9 h-9 text-destructive" />
+          </div>
         </div>
 
-        {/* TitleAndDescription */}
+        {/* Message */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Payment Unsuccessful
-          </h1>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            The transaction was cancelled or failed to process. Don't worry—your
-            booking remains active under{' '}
-            <span className="font-semibold text-blue-600">ACCEPTED</span> status
-            so you can try again.
+          <h1 className="text-2xl font-bold">Payment Cancelled</h1>
+          <p className="text-sm text-muted-foreground">
+            Your Stripe payment was cancelled. No payment was completed.
           </p>
         </div>
 
-        {/* InfoBox */}
-        <div className="bg-amber-50/60 border border-amber-100 p-4 rounded-xl text-left flex items-start gap-3">
-          <HelpCircle className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
-          <p className="text-xs text-amber-800 leading-normal">
-            If your card was charged, please wait a few minutes or contact
-            support with your booking details.
+        {/* BookingInfo */}
+        {bookingId && (
+          <p className="text-xs text-muted-foreground">
+            Booking ID: {bookingId}
           </p>
-        </div>
+        )}
 
-        {/* NavigationActions */}
-        <div className="space-y-3 pt-2">
-          <Link
-            href="/dashboard/customer-dashboard/bookings"
-            className="w-full inline-flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-6 rounded-xl shadow-md transition-all duration-200"
+        {/* Actions */}
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleTryAgain}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
           >
-            <RefreshCw className="w-4 h-4" />
-            <span>Return to Bookings & Retry</span>
-          </Link>
+            <CreditCard className="w-4 h-4" />
+            Return to My Bookings
+          </button>
 
-          <Link
-            href="/"
-            className="w-full inline-flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-gray-800 py-2 transition-colors"
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-md border px-4 py-2.5 text-sm font-medium hover:bg-muted transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Go to Home Page</span>
-          </Link>
+            Go Back
+          </button>
         </div>
       </div>
     </div>
+  );
+}
+
+function PaymentFailedLoading() {
+  return (
+    <div className="min-h-[70vh] flex items-center justify-center px-4">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="w-5 h-5 animate-spin" />
+        <span>Loading payment details...</span>
+      </div>
+    </div>
+  );
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense fallback={<PaymentFailedLoading />}>
+      <PaymentFailedContent />
+    </Suspense>
   );
 }
