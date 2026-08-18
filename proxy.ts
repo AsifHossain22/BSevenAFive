@@ -5,7 +5,13 @@ import { jwtUtils } from './utils/jwt';
 import { cookies } from 'next/headers';
 
 const AUTH_ROUTES = ['/register', '/login'];
-const PUBLIC_ROUTES = ['/', '/services', '/technicians'];
+const PUBLIC_ROUTES = [
+  '/',
+  '/services',
+  '/technicians',
+  '/payment-success',
+  '/payment-failed',
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
