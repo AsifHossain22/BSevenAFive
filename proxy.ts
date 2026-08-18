@@ -13,7 +13,7 @@ const PUBLIC_ROUTES = [
   '/payment-failed',
 ];
 
-export async function proxy(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const cookieStore = await cookies();

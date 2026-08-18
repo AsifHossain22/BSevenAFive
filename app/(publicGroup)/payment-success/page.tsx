@@ -31,7 +31,7 @@ export default async function PaymentSuccessPage({
         href="/dashboard/customer-dashboard/bookings"
         className="mt-6 px-6 py-2.5 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
       >
-        Go to Bookings
+        Go to Dashboard
       </Link>
     </div>
   );
