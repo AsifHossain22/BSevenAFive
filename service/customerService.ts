@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 
 const BACKEND_URL = `${process.env.BACKEND_API_URL}`.replace(/\/$/, '');
 
+// AuthHeaders
 async function getAuthHeaders() {
   const cookieStore = await cookies();
   const token =
@@ -15,7 +16,6 @@ async function getAuthHeaders() {
     'Content-Type': 'application/json',
     ...(token && {
       Authorization: `Bearer ${token}`,
-      Cookie: `accessToken=${token}`,
     }),
   };
 }
@@ -39,6 +39,9 @@ export async function getAllServices(query?: {
     );
 
     if (!res.ok) {
+      console.warn(
+        `Primary service fetch failed with status ${res.status}. Trying fallback.`,
+      );
       const fallbackRes = await fetch(
         `${BACKEND_URL}/api/technician/services`,
         {
@@ -98,7 +101,6 @@ export async function getCustomerBookings() {
       method: 'GET',
       headers,
       cache: 'no-store',
-      next: { revalidate: 0 },
     });
 
     if (!res.ok) {
